@@ -1,15 +1,17 @@
 <mt:setvarblock name="page_title">Create Thumbnail for <$mt:var name="asset_label" encode_html="1"$></mt:setvarblock>
+<mt:SetVarBlock name="ICJavascript"><mt:StaticWebPath>plugins/ImageCropper/js/</mt:SetVarBlock>
+<mt:SetVarBlock name="ICStyles"><mt:StaticWebPath>plugins/ImageCropper/css/</mt:SetVarBlock>
 
 <mt:setvarblock name="html_head" append="1">
-    <script src="<mt:StaticWebPath>plugins/ImageCropper/js/jquery-1.3.2.min.js"></script>
-    <script src="<mt:StaticWebPath>plugins/ImageCropper/js/ui.core.js"></script>
-    <script src="<mt:StaticWebPath>plugins/ImageCropper/js/ui.dialog.js"></script>
-    <script src="<mt:StaticWebPath>plugins/ImageCropper/js/ui.resizable.js"></script>
-    <script src="<mt:StaticWebPath>plugins/ImageCropper/js/ui.draggable.js"></script>
-    <script src="<mt:StaticWebPath>plugins/ImageCropper/js/jquery.dimensions.js"></script>
-    <script src="<mt:StaticWebPath>plugins/ImageCropper/js/jquery.scrollable-1.0.1.min.js"></script>
-    <script src="<mt:StaticWebPath>plugins/ImageCropper/js/jquery.scrollTo.min.js"></script>
-    <script src="<mt:StaticWebPath>plugins/ImageCropper/js/jquery.Jcrop.js"></script>
+    <script src="<$mt:Var name="ICJavascript"$>jquery-1.3.2.min.js"></script>
+    <script src="<$mt:Var name="ICJavascript"$>ui.core.js"></script>
+    <script src="<$mt:Var name="ICJavascript"$>ui.dialog.js"></script>
+    <script src="<$mt:Var name="ICJavascript"$>ui.resizable.js"></script>
+    <script src="<$mt:Var name="ICJavascript"$>ui.draggable.js"></script>
+    <script src="<$mt:Var name="ICJavascript"$>jquery.dimensions.js"></script>
+    <script src="<$mt:Var name="ICJavascript"$>jquery.scrollable-1.0.1.min.js"></script>
+    <mt:Ignore><script src="<$mt:Var name="ICJavascript"$>jquery.scrollTo.min.js"></script></mt:Ignore>
+    <script src="<$mt:Var name="ICJavascript"$>jquery.Jcrop.js"></script>
     <script type="text/javascript">
     var coords;
     var protos    = Array();
@@ -41,7 +43,7 @@
         $('#prototypes li#proto-'+id).addClass('selected');
         selected = id;
         initCrop( p.max_width, p.max_height, p.x, p.y, p.w, p.h );
-        $.scrollTo("#step2", { duration : 1500 });
+        <mt:Ignore>$.scrollTo("#step2", { duration : 1500 });</mt:Ignore>
       });
       $('#prototypes li .proto_action a').click( function(e) {
         e.stopPropagation();
@@ -85,7 +87,7 @@
       jcrop.setSelect([ x, y, x+w, y+h ]);
     }
     function cropAsset() {
-      $.scrollTo(0, { duration : 500 });
+      <mt:Ignore>$.scrollTo(0, { duration : 500 });</mt:Ignore>
       if (!coords) { return; }
       //if (inprocess[selected]) { return; }
       inprocess[selected] = 1;
@@ -94,6 +96,8 @@
       protos[ selected ].y = coords.y;
       protos[ selected ].w = coords.w;
       protos[ selected ].h = coords.h;
+      console.log('Selected proto info for asset: '+asset_id);
+      console.dir(protos[selected]);
       var annotate = $('#include_annotation-field input:checked').val() == 1;
       $('#prototypes li#proto-'+selected).addClass('inprogress');
       $.post("<mt:var name="script_url">", {
@@ -128,164 +132,189 @@
       return true;
     }
     </script>
-    <link rel="stylesheet" href="<mt:StaticWebPath>plugins/ImageCropper/css/app.css" type="text/css">
+    <link rel="stylesheet" href="<$mt:Var name="ICStyles"$>app.css" type="text/css">
     <link rel="stylesheet" href="<mt:StaticWebPath>jquery/themes/flora/flora.dialog.css" type="text/css">
-    <link rel="stylesheet" href="<mt:StaticWebPath>plugins/ImageCropper/css/jquery.Jcrop.css" type="text/css">
+    <link rel="stylesheet" href="<$mt:Var name="ICStyles"$>jquery.Jcrop.css" type="text/css">
 </mt:setvarblock>
 
 <$mt:include name="include/header.tmpl"$>
 
+
 <mt:unless name="has_prototypes">
-        <mtapp:statusmsg
-            id="message"
-            class="alert">
-            <__trans phrase="You have no thumbnail prototypes defined. Please <a href="<mt:var name="script_url">?__mode=list_prototypes&blog_id=<$mt:var name="blog_id"$>">create some thumbnail prototypes</a>.">
-        </mtapp:statusmsg>
-<mt:else>
+    <mt:Ignore>#################################################################################
+    ###########                      NO PROTOTYPES CREATED YET                      ############
+    ################################################################################</mt:Ignore>
 
+    <mtapp:statusmsg
+        id="message"
+        class="alert">
+        <__trans phrase="You have no thumbnail prototypes defined. Please <a href="<mt:var name="script_url">?__mode=list_prototypes&amp;blog_id=<$mt:var name="blog_id"$>">create some thumbnail prototypes</a>.">
+    </mtapp:statusmsg>
+
+<mt:else>
+    <mt:Ignore>#################################################################################
+    ###########                     PROTOTYPES PREVIOUSLY CREATED                   ############
+    ################################################################################</mt:Ignore>
+
+    <mt:Ignore>###### RETURN TO ASSET EDITING SCREEN BUTTON #######</mt:Ignore>
     <div class="actions-bar">
-      <div class="actions-bar-inner pkg actions">
-        <button
-         style="float: right"
-            type="button"
-            class="primary-button"
-            accesskey="s"
-            title="Return to the asset editing screen"
-            onclick="location.href = '?__mode=view&_type=asset&id=<$mt:AssetID$>&blog_id=<$mt:BlogID$>';">Return to asset</button>
-      </div>
+        <div class="actions-bar-inner pkg actions">
+            <button
+             style="float: right"
+                type="button"
+                class="primary-button"
+                accesskey="s"
+                title="Return to the asset editing screen"
+                onclick="location.href = '?__mode=view&amp;_type=asset&amp;id=<$mt:AssetID$>&amp;blog_id=<$mt:BlogID$>';">Return to asset</button>
+        </div>
+    </div>
+
+    <mt:Ignore>####################################</mt:Ignore>
+    <h3 id="step1">1. Select a Thumbnail Prototype:</h3>
+
+    <div id="selector" class="pkg">
+        <a class="prev"></a>
+        <div class="scrollable">
+            <ul id="prototypes" class="pkg">
+            <mt:loop name="prototype_loop">
+
+                <mt:SetVarBlock name="proto_preview"><mt:if name="thumbnail_url">
+                    <img src="<$mt:var name="thumbnail_url"$>" 
+                         <mt:unless name="smaller_vp"><mt:if name="is_tall">height="135"<mt:else>width="175"</mt:if></mt:unless> />
+                </mt:if></mt:SetVarBlock>
+
+                <li id="proto-<$mt:var name="proto_key"$>" class="<mt:unless name="thumbnail_url">nothumb</mt:unless>">
+                    <div class="proto_preview"><mt:Var name="proto_preview" default="<span>?</span>"></div>
+                    <div class="proto_action"><a href="javascript:void(0);"><img src="<$mt:Var name="ICStyles"$>delete.gif" /></a></div>
+                    <div class="proto_progress"><img src="<$mt:Var name="ICStyles"$>indicator.gif" width="16" height="16" /></div>
+                    <div class="proto_size"><$mt:var name="cropped_size" default=""$></div>
+                    <div class="proto_info">
+                        <$mt:var name="proto_label"$><br />
+                        (<$mt:var name="max_width"$> x <$mt:var name="max_height"$>)
+                    </div>
+                </li>
+            </mt:loop>
+            </ul>
+        </div>
+        <a class="next"></a>
     </div>
 
 
-<h3 id="step1">1. Select a Thumbnail Prototype:</h3>
+    <div id="asset-crop-selector" class="two-column big-column">
 
-<div id="selector" class="pkg">
-<a class="prev"></a>
-<div class="scrollable">
-<ul id="prototypes" class="pkg">
-<mt:loop name="prototype_loop">
-  <li id="proto-<$mt:var name="proto_key"$>" class="<mt:unless name="thumbnail_url">nothumb</mt:unless>">
-    <div class="proto_preview">
-      <mt:if name="thumbnail_url"><img src="<$mt:var name="thumbnail_url"$>" <mt:unless name="smaller_vp"><mt:if name="is_tall">height="135"<mt:else>width="175"</mt:if></mt:unless> /><mt:else><span>?</span></mt:if>
+        <mt:Ignore>#############################</mt:Ignore>
+        <h3 id="step2">2. Select your crop area:</h3>
+
+        <div id="asset" style="width: <$mt:var name="box_width"$>; height: <$mt:var name="box_height"$>"><mt:section trim="1">
+            <mt:setvarblock name="width"><$mt:AssetProperty property="image_width"$></mt:setvarblock>
+            <mt:if name="width" lt="450">
+                <img src="<$mt:AssetURL$>" />
+            <mt:else>
+                <img src="<$mt:AssetThumbnailURL width="450"$>" />
+            </mt:if>
+        </mt:section></div>
+
     </div>
-    <div class="proto_action"><a href="javascript:void(0);"><img src="<$mt:StaticWebPath$>plugins/ImageCropper/css/delete.gif" /></a></div>
-    <div class="proto_progress"><img src="<$mt:StaticWebPath$>plugins/ImageCropper/css/indicator.gif" width="16" height="16" /></div>
-    <div class="proto_size"><$mt:var name="cropped_size" default=""$></div>
-    <div class="proto_info">
-      <$mt:var name="proto_label"$><br />
-      (<$mt:var name="max_width"$> x <$mt:var name="max_height"$>)
+    <div id="asset-crop-details" class="two-column small-column">
+
+        <mt:Ignore>##########################################</mt:Ignore>
+        <h3 id="step3">3. Select additional crop options:</h3>
+
+        <mt:Ignore>######### TEXT ANNOTATION ##########</mt:Ignore>
+        <mtapp:setting
+            id="include_annotation"
+            label_class="left-label"
+            label="<__trans phrase="Include Text Annotation?">"
+            content_class="field-content-text"
+            show_label="0"
+            show_hint="0">
+              <input type="checkbox" id="include_annotation" name="include_annotation" value="1" onclick="toggleAnnotation(this);"<mt:if name="include_annotation"> checked="checked"</mt:if> class="cb" /> <label for="include_annotation"><__trans phrase="Include Text Annotation?"></label>
+        </mtapp:setting>
+
+        <div id="annotation-settings" class="pkg settings-group">
+            <mtapp:setting
+                id="annotation"
+                label="<__trans phrase="Text Annotation">"
+                show_hint="0">
+                  <input type="text" name="annotation" value="<$mt:DefaultCroppedImageText encode_html="1"$>" size="30" />
+            </mtapp:setting>
+            <mtapp:setting
+                id="annotation_size"
+                label="<__trans phrase="Font Size">"
+                show_hint="0">
+                   <input type="text" name="annotation_size" value="<$mt:CropperFontSize$>" size="5" />
+            </mtapp:setting>
+            <mtapp:setting
+                id="annotation_loc"
+                label="<__trans phrase="Annotation Location">"
+                show_hint="0">
+                   <select name="annotation_loc">
+                     <option value="NorthWest">Top Left</option>
+                     <option value="NorthEast">Top Right</option>
+                     <option value="SouthWest">Bottom Left</option>
+                     <option value="SouthEast" selected>Bottom Right</option>
+                   </select>
+            </mtapp:setting>
+            <mtapp:setting
+                id="annotation_rot"
+                label="<__trans phrase="Annotation Rotation">"
+                show_hint="0">
+                   <select name="annotation_rot">
+                     <option>Horizontal</option>
+                     <option>Vertical</option>
+                   </select>
+            </mtapp:setting>
+        </div>
+
+        <mt:Ignore>#################### COMPRESSION SETTINGS #########################</mt:Ignore>
+        <div id="compress-settings" class="pkg settings-group">
+            <mtapp:setting
+                id="type"
+                label="<__trans phrase="Thumbnail Image Type">"
+                hint="non-functional right now"
+                show_hint="1">
+                   <select name="type">
+                     <option value="jpg" selected>JPEG</option>
+                     <option value="png">PNG</option>
+                     <option value="gif">GIF</option>
+                   </select>
+            </mtapp:setting>
+
+            <mtapp:setting
+                id="quality"
+                label="<__trans phrase="Thumbnail Quality">"
+                show_hint="1">
+                   <mt:setvarblock name="def"><$mt:DefaultCropperCompression$></mt:setvarblock>
+                   <mt:if name="def" eq=""><$mt:var name="def" value="5"$></mt:if>
+                   <select name="quality">
+                     <option value="1"<mt:if name="def" eq="0"> selected</mt:if>>0 - Lowest</option>
+                     <option value="10"<mt:if name="def" eq="1"> selected</mt:if>>1</option>
+                     <option value="20"<mt:if name="def" eq="2"> selected</mt:if>>2</option>
+                     <option value="30"<mt:if name="def" eq="3"> selected</mt:if>>3</option>
+                     <option value="40"<mt:if name="def" eq="4"> selected</mt:if>>4</option>
+                     <option value="50"<mt:if name="def" eq="5"> selected</mt:if>>5</option>
+                     <option value="60"<mt:if name="def" eq="6"> selected</mt:if>>6</option>
+                     <option value="70"<mt:if name="def" eq="7"> selected</mt:if>>7</option>
+                     <option value="80"<mt:if name="def" eq="8"> selected</mt:if>>8</option>
+                     <option value="90"<mt:if name="def" eq="9"> selected</mt:if>>9</option>
+                     <option value="100"<mt:if name="def" eq="10"> selected</mt:if>>10 - Highest</option>
+                   </select>
+            </mtapp:setting>
+        </div>
+
+        <mt:Ignore>#################### BUTTON BAR #########################</mt:Ignore>
+        <div class="actions-bar settings-actions-bar pkg">
+            <div class="actions-bar-inner actions">
+                <button
+                       type="button"
+                       class="primary-button"
+                       accesskey="s"
+                       title="Crop"
+                       onclick="return cropAsset();">Set Crop Details</button>
+            </div>
+        </div>
     </div>
-  </li>
-</mt:loop>
-</ul>
-</div>
-<a class="next"></a>
-</div>
 
-<h3 id="step2">2. Select your crop area:</h3>
-
-<div id="asset" style="width: <$mt:var name="box_width"$>; height: <$mt:var name="box_height"$>"><mt:section trim="1">
-<mt:setvarblock name="width"><$mt:AssetProperty property="image_width"$></mt:setvarblock>
-<mt:if name="width" lt="900">
-<img src="<$mt:AssetURL$>" />
-<mt:else>
-<img src="<$mt:AssetThumbnailURL width="900"$>" />
-</mt:if>
-</mt:section></div>
-
-<h3 id="step3">3. Select additional crop options:</h3>
-
-<mtapp:setting
-    id="include_annotation"
-    label_class="top-label"
-    label="<__trans phrase="Include Text Annotation?">"
-    show_label="0"
-    show_hint="0">
-      <label><input type="checkbox" name="include_annotation" value="1" onclick="toggleAnnotation(this);" /> Include Text Annotation?</label>
-</mtapp:setting>
-<div id="annotation-settings" class="pkg settings-group">
-<mtapp:setting
-    id="annotation"
-    label_class="top-label"
-    label="<__trans phrase="Text Annotation">"
-    show_hint="0">
-      <input type="text" name="annotation" value="<$mt:DefaultCroppedImageText encode_html="1"$>" size="30" />
-</mtapp:setting>
-<mtapp:setting
-    id="annotation_size"
-    label_class="top-label"
-    label="<__trans phrase="Font Size">"
-    show_hint="0">
-       <input type="text" name="annotation_size" value="<$mt:CropperFontSize$>" size="5" />
-</mtapp:setting>
-<mtapp:setting
-    id="annotation_loc"
-    label_class="top-label"
-    label="<__trans phrase="Annotation Location">"
-    show_hint="0">
-       <select name="annotation_loc">
-         <option value="NorthWest">Top Left</option>
-         <option value="NorthEast">Top Right</option>
-         <option value="SouthWest">Bottom Left</option>
-         <option value="SouthEast" selected>Bottom Right</option>
-       </select>
-</mtapp:setting>
-<mtapp:setting
-    id="annotation_rot"
-    label_class="top-label"
-    label="<__trans phrase="Annotation Rotation">"
-    show_hint="0">
-       <select name="annotation_rot">
-         <option>Horizontal</option>
-         <option>Vertical</option>
-       </select>
-</mtapp:setting>
-</div>
-
-<div id="compress-settings" class="pkg settings-group">
-<mtapp:setting
-    id="type"
-    label="<__trans phrase="Thumbnail Image Type">"
-    hint="non-functional right now"
-    show_hint="1">
-       <select name="type">
-         <option value="jpg" selected>JPEG</option>
-         <option value="png">PNG</option>
-         <option value="gif">GIF</option>
-       </select>
-</mtapp:setting>
-
-<mtapp:setting
-    id="quality"
-    label="<__trans phrase="Thumbnail Quality">"
-    show_hint="1">
-       <mt:setvarblock name="def"><$mt:DefaultCropperCompression$></mt:setvarblock>
-       <mt:if name="def" eq=""><$mt:var name="def" value="5"$></mt:if>
-       <select name="quality">
-         <option value="1"<mt:if name="def" eq="0"> selected</mt:if>>0 - Lowest</option>
-         <option value="10"<mt:if name="def" eq="1"> selected</mt:if>>1</option>
-         <option value="20"<mt:if name="def" eq="2"> selected</mt:if>>2</option>
-         <option value="30"<mt:if name="def" eq="3"> selected</mt:if>>3</option>
-         <option value="40"<mt:if name="def" eq="4"> selected</mt:if>>4</option>
-         <option value="50"<mt:if name="def" eq="5"> selected</mt:if>>5</option>
-         <option value="60"<mt:if name="def" eq="6"> selected</mt:if>>6</option>
-         <option value="70"<mt:if name="def" eq="7"> selected</mt:if>>7</option>
-         <option value="80"<mt:if name="def" eq="8"> selected</mt:if>>8</option>
-         <option value="90"<mt:if name="def" eq="9"> selected</mt:if>>9</option>
-         <option value="100"<mt:if name="def" eq="10"> selected</mt:if>>10 - Highest</option>
-       </select>
-</mtapp:setting>
-</div>
-
-<div class="actions-bar">
-  <div class="actions-bar-inner pkg actions">
-    <button
-        type="button"
-        class="primary-button"
-        accesskey="s"
-        title="Crop"
-        onclick="return cropAsset();">Crop</button>
-  </div>
-</div>
 </mt:unless>
 
 <$mt:include name="include/footer.tmpl"$>
