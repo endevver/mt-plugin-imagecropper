@@ -159,14 +159,24 @@ sub hdlr_cropped_asset {
                 : defined $a->blog_id       ? $a->blog_id
                 : ref $blog                 ? $blog->id
                                             : 0;
+    ###l4p $logger->debug('Loading prototype with: ', l4mtdump({
+    ###l4p         blog_id => $blog_id,
+    ###l4p         label   => $l,
+    ###l4p }));
+
     my ($out, $map);
     my $prototype = MT->model('thumbnail_prototype')->load( {
             blog_id => $blog_id,
             label   => $l,
         }
     );
+
     if ($prototype) {
-        # MT->log({ message => "prototype found: " . $prototype->id });
+        ###l4p $logger->info("prototype found: ".$prototype->id, l4mtdump( $prototype ));
+        ###l4p $logger->debug('Loading prototype map with: ', l4mtdump({
+        ###l4p         prototype_key => 'custom_' . $prototype->id,
+        ###l4p         asset_id      => $a->id,
+        ###l4p }));
         $map = MT->model('thumbnail_prototype_map')->load( {
                 prototype_key => 'custom_' . $prototype->id,
                 asset_id      => $a->id,
@@ -175,7 +185,11 @@ sub hdlr_cropped_asset {
     }
     elsif ( my $id = find_prototype_id( $ctx, $l ) ) {
 
-  # MT->log({ message => "prototype not found, consulted registry: " . $id });
+        ###l4p $logger->info("prototype not found, consulted registry: " . $id);
+        ###l4p $logger->debug('Loading prototype map with: ', l4mtdump({
+        ###l4p         prototype_key => $blog->template_set . "___" . $id,
+        ###l4p         asset_id      => $a->id,
+        ###l4p }));
         $map = MT->model('thumbnail_prototype_map')->load( {
                 prototype_key => $blog->template_set . "___" . $id,
                 asset_id      => $a->id,
@@ -184,13 +198,17 @@ sub hdlr_cropped_asset {
     }
 
     if ($map) {
+        ###l4p $logger->info("prototype map loaded: ".$map->id, l4mtdump( $map ));
         my $cropped = MT->model('asset')->load( $map->cropped_asset_id );
+        
         if ($cropped) {
+            ###l4p $logger->info('Cropped asset loaded with $map->cropped_asset_id: ', l4mtdump( $cropped ));
             local $ctx->{__stash}{'asset'} = $cropped;
             defined( $out = $ctx->slurp( $args, $cond ) ) or return;
             return $out;
         }
     }
+    ###l4p $logger->info('Return ELSE tokens :-(');
     return _hdlr_pass_tokens_else(@_);
 }
 
