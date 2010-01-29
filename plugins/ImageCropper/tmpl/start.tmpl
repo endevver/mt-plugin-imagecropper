@@ -10,7 +10,6 @@
     <script src="<$mt:Var name="ICJavascript"$>ui.draggable.js"></script>
     <script src="<$mt:Var name="ICJavascript"$>jquery.dimensions.js"></script>
     <script src="<$mt:Var name="ICJavascript"$>jquery.scrollable-1.0.1.min.js"></script>
-    <mt:Ignore><script src="<$mt:Var name="ICJavascript"$>jquery.scrollTo.min.js"></script></mt:Ignore>
     <script src="<$mt:Var name="ICJavascript"$>jquery.Jcrop.js"></script>
     <script type="text/javascript">
     var coords;
@@ -43,7 +42,6 @@
         $('#prototypes li#proto-'+id).addClass('selected');
         selected = id;
         initCrop( p.max_width, p.max_height, p.x, p.y, p.w, p.h );
-        <mt:Ignore>$.scrollTo("#step2", { duration : 1500 });</mt:Ignore>
       });
       $('#prototypes li .proto_action a').click( function(e) {
         e.stopPropagation();
@@ -87,7 +85,6 @@
       jcrop.setSelect([ x, y, x+w, y+h ]);
     }
     function cropAsset() {
-      <mt:Ignore>$.scrollTo(0, { duration : 500 });</mt:Ignore>
       if (!coords) { return; }
       //if (inprocess[selected]) { return; }
       inprocess[selected] = 1;
@@ -96,8 +93,6 @@
       protos[ selected ].y = coords.y;
       protos[ selected ].w = coords.w;
       protos[ selected ].h = coords.h;
-      console.log('Selected proto info for asset: '+asset_id);
-      console.dir(protos[selected]);
       var annotate = $('#include_annotation-field input:checked').val() == 1;
       $('#prototypes li#proto-'+selected).addClass('inprogress');
       $.post("<mt:var name="script_url">", {
