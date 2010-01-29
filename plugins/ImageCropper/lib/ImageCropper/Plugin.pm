@@ -91,14 +91,13 @@ sub init_app {
 sub complete_upload_wrapper {
     my $app      = shift;
     my $asset_id = $app->param('id');
-
     ###l4p $logger     ||= MT::Log->get_logger();  $logger->trace();
 
     # Call the original method to perform the work
     $target{subref}->( $app, @_ );
 
-    # Alter the redirect location from list_assets
-    # to manage_thumbnails for the uploaded asset
+    # Alter the redirect location to we go to the view/edit
+    # asset screen and not the list_assets screen.
     if ( $app->{redirect} =~ m{__mode=list_assets} ) {
         return $app->redirect(
             $app->uri(
