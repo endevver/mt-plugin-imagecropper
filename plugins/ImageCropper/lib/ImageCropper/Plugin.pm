@@ -90,7 +90,8 @@ sub init_app {
 
 sub complete_upload_wrapper {
     my $app      = shift;
-    my $asset_id = $app->param('id');
+    my $q        = $app->can('query') ? $app->query : $app->param;
+    my $asset_id = $q->param('id');
 
     ###l4p $logger     ||= MT::Log->get_logger();  $logger->trace();
 
@@ -107,9 +108,9 @@ sub complete_upload_wrapper {
                     'from'        => 'view',
                     '_type'       => 'asset',
                     'id'          => $asset_id,
-                    'blog_id'     => $app->param('blog_id'),
+                    'blog_id'     => $q->param('blog_id'),
                     'return_args' => $app->return_args,
-                    'magic_token' => $app->param('magic_token')
+                    'magic_token' => $q->param('magic_token')
                 }
             )
         );
@@ -126,7 +127,7 @@ sub hdlr_default_text {
 sub del_prototype {
     my ($app) = @_;
     $app->validate_magic or return;
-    my @protos = $app->param('id');
+    my @protos = $q->param('id');
     for my $pid (@protos) {
         my $p = MT->model('thumbnail_prototype')->load($pid) or next;
         $p->remove;
@@ -401,7 +402,7 @@ sub gen_thumbnails_start {
 
 sub delete_crop {
     my $app  = shift;
-    my $q    = $app->param;
+    my $q = $app->can('query') ? $app->query : $app->param;
     my $blog = $app->blog;
     my $id   = $q->param('id');
     my $key  = $q->param('prototype');
@@ -436,7 +437,7 @@ sub delete_crop {
 
 sub crop {
     my $app  = shift;
-    my $q    = $app->param;
+    my $q = $app->can('query') ? $app->query : $app->param;
     my $blog = $app->blog;
 
     my $X         = $q->param('x');
