@@ -127,6 +127,7 @@ sub hdlr_default_text {
 sub del_prototype {
     my ($app) = @_;
     $app->validate_magic or return;
+    my $q = $app->can('query') ? $app->query : $app->param;
     my @protos = $q->param('id');
     for my $pid (@protos) {
         my $p = MT->model('thumbnail_prototype')->load($pid) or next;
@@ -185,7 +186,7 @@ sub _hdlr_pass_tokens_else {
 sub save_prototype {
     my $app = shift;
     my $param;
-    my $q   = $app->{query};
+    my $q = $app->can('query') ? $app->query : $app->param;
     my $obj = MT->model('thumbnail_prototype')->load( $q->param('id') )
       || MT->model('thumbnail_prototype')->new;
 
@@ -203,7 +204,7 @@ sub save_prototype {
 sub edit_prototype {
     my $app     = shift;
     my ($param) = @_;
-    my $q       = $app->{query};
+    my $q       = $app->can('query') ? $app->query : $app->param;
     my $blog    = MT::Blog->load( $q->param('blog_id') );
 
     $param ||= {};
@@ -262,7 +263,7 @@ sub load_ts_prototypes {
 sub list_prototypes {
     my $app = shift;
     my ($params) = @_ || {};
-    my $q        = $app->{query};
+    my $q = $app->can('query') ? $app->query : $app->param;
     my $blog     = $app->blog;
 
     if ( $blog && $app->blog->template_set ) {
@@ -402,7 +403,7 @@ sub gen_thumbnails_start {
 
 sub delete_crop {
     my $app  = shift;
-    my $q = $app->can('query') ? $app->query : $app->param;
+    my $q    = $app->can('query') ? $app->query : $app->param;
     my $blog = $app->blog;
     my $id   = $q->param('id');
     my $key  = $q->param('prototype');
