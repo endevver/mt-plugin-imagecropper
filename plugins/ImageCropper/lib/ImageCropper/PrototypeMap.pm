@@ -26,10 +26,18 @@ __PACKAGE__->install_properties( {
             prototype_key => 1,
             asset_id      => 1,
         },
-        datasource  => 'cropper_prototypemaps',
+        datasource  => 'crop_map',
         primary_key => 'id',
     }
 );
+
+sub class_label {
+    MT->translate("Thumbnail Prototype Map");
+}
+
+sub class_label_plural {
+    MT->translate("Thumbnail Prototype Maps");
+}
 
 1;
 __END__
