@@ -17,11 +17,7 @@ upgrade_functions:
         updater:
             type: thumbnail_prototype_map
             label: Updating Prototype Map keys...
-            code: >
-                sub {
-                    my $pid = $_[0]->prototype_id;
-                    $_[0]->prototype_key('custom_' . $pid);
-                }
+            code: $ImageCropper::ImageCropper::Upgrade::prototype_map_key
 
 options:
   fieldsets:

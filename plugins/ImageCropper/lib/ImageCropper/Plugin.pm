@@ -38,8 +38,10 @@ sub post_remove_asset {
 # in order to override and wrap MT::CMS::Asset::complete_upload
 sub init_app {
     my ( $plugin, $app ) = @_;
-
     ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
+
+    # Do nothing unless the current app is our target app
+    return unless ref $app and $app->isa('MT::App::CMS');
 
     # This plugin operates by overriding the method
     # (MT::CMS::Asset::complete_upload)
@@ -48,9 +50,6 @@ sub init_app {
         method => 'complete_upload',
         subref => undef
     );
-
-    # Do nothing unless the current app is our target app
-    return unless ref $app and $app->isa('MT::App::CMS');
 
     # Make sure that our app module has the method we're looking for
     # and grab a reference to it if so.
