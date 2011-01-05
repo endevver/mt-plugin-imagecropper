@@ -3,7 +3,7 @@ name: 'Image Cropper'
 plugin_author: 'Endevver, LLC.'
 plugin_link: 'http://endevver.com/plugins/image-cropper/'
 description: "Allows users to define a set of thumbnail prototypes that others can easily generate using a drag-and-drop image cropping tool."
-version: 1.0.20
+version: 1.0.21
 schema_version: 8
 
 callbacks:
@@ -17,11 +17,11 @@ upgrade_functions:
         updater:
             type: thumbnail_prototype_map
             label: Updating Prototype Map keys...
-            code: >
-                sub {
-                    my $pid = $_[0]->prototype_id;
-                    $_[0]->prototype_key('custom_' . $pid);
-                }
+            code: $ImageCropper::ImageCropper::Upgrade::prototype_map_key
+    abbrev_tables:
+        version_limit: 8
+        priority: 5
+        code: $ImageCropper::ImageCropper::Upgrade::AbbrevTables::run
 
 options:
   fieldsets:
