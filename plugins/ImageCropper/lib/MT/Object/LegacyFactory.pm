@@ -124,14 +124,22 @@ class' C<init_class> method.
 =cut
 sub migrate_data {
     my $pkg     = shift;
-    my $cnt     = $pkg->count() or return 0;
     my $new_pkg = shift || $pkg->properties->{replaced_by_class}
         or return $pkg->error('No replaced_by_class specified for '.$pkg);
     ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
 
+    defined( my $cnt = $pkg->count() )
+        or return $pkg->error('Could not retrieve count of $pkg objects: '
+                                .($pkg->errstr||'Unknown error'));
+    return $cnt unless $cnt;
+
+    my $migrated = 0;
+
     # Iterate over each record in legacy table
     # and save cloned record to new table
-    my $iter = $pkg->load_iter();
+    my $iter = $pkg->load_iter()
+        or return $pkg->error("Could not get object iterator for $pkg: "
+                                .($pkg->errstr||'Unknown error'));
     while ( my $obj = $iter->() ) {
 
         # Clone the object as the new class and save
@@ -147,8 +155,10 @@ sub migrate_data {
 
         ###l4p $logger->debug(sprintf('Saved %s object to new table %s',
         ###l4p                        $pkg, $new_pkg->table_name));
+
+        $migrated++;
     }
-    return $cnt;
+    return $migrated;
 }
 
 =head2 $obj->clone_as( $new_class )
