@@ -18,7 +18,7 @@ upgrade_functions:
             type: thumbnail_prototype_map
             label: Updating Prototype Map keys...
             code: $ImageCropper::ImageCropper::Upgrade::prototype_map_key
-    abbrev_tables:
+    cropper_abbrev_tables:
         version_limit: 8
         priority: 5
         code: $ImageCropper::ImageCropper::Upgrade::AbbrevTables::run
