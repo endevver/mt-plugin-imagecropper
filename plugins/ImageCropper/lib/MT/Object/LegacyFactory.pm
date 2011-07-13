@@ -129,8 +129,9 @@ sub migrate_data {
     ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
 
     defined( my $cnt = $pkg->count() )
-        or return $pkg->error('Could not retrieve count of $pkg objects: '
+        or return $pkg->error("Could not retrieve count of $pkg objects: "
                                 .($pkg->errstr||'Unknown error'));
+    ###l4p $logger->info("Updating $pkg to $new_pkg. Object count: ".$cnt );
     return $cnt unless $cnt;
 
     my $migrated = 0;
