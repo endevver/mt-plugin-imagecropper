@@ -1,8 +1,7 @@
-# Image Cropper Plugin for Movable Type #
+# Image Cropper Plugin for Melody/Movable Type #
 
-The Image Cropper Plugin for Movable Type provides a simple
-user interface for managing and generating custom thumbnails
-from any image asset managed by Movable Type. 
+The Image Cropper Plugin provides a simple user interface for
+managing and generating custom thumbnails from your image assets.
 
 The plugin was specifically designed to addressed the case
 where publishers want the ability to produce different thumbnails
@@ -17,6 +16,16 @@ photographer and preserve any required copyright notices, this
 plugin allows you place some text on the image accordingly.
 
 This utility facilitates that process.
+
+## Requirements ##
+
+* Movable Type 4.x or any version of Melody
+    * **IMPORTANT:** Problems HAVE been been reported running Image
+      Cropper with **Movable Type 5.x**, which we do not currently
+      support. (see [tickets][] and [discussions][] for further details)
+
+[tickets]: https://endevver.lighthouseapp.com/projects/34923-image-cropper/tickets/bins/43047
+[discussions]: http://help.endevver.com/search?q=Image+Cropper&t=d
 
 ## Features ##
 
