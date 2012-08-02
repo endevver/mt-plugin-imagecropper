@@ -244,13 +244,17 @@ sub load_ts_prototypes {
           $app->registry('template_sets')->{$ts}->{thumbnail_prototypes};
         foreach ( keys %$ps ) {
             my $p = $ps->{$_};
+
+            # If the required values for this prototype are missing, give up.
+            next unless $p->{label} && $p->{max_width} && $p->{max_height};
+
             push @protos,
               { id           => $_,
                 type         => 'template_set',
                 key          => "$ts::$_",
                 template_set => $ts,
                 blog_id      => $blog->id,
-                label        => &{ $p->{label} },
+                label        => $p->{label},
                 max_width    => $p->{max_width},
                 max_height   => $p->{max_height},
               };
