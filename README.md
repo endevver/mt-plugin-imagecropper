@@ -151,7 +151,7 @@ dimensions.
 
 If you are having problems installing or using the plugin, please check out our general knowledge base and help ticket system at [help.endevver.com](http://help.endevver.com).
 
-If you know that you've encountered a bug in the plugin or you have a request for a feature you'd like to see, you can file a ticket in the [Image Cropper project](https://endevver.lighthouseapp.com/projects/34923-image-cropper) in our issue tracking system and we'll get to it as soon as possible.
+If you know that you've encountered a bug in the plugin or you have a request for a feature you'd like to see, you can file a ticket in [Github Issues](https://github.com/endevver/mt-plugin-imagecropper/issues).
 
 ## Copyright ##
 
