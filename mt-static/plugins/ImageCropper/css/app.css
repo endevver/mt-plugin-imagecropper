@@ -12,7 +12,7 @@ h3 {
   margin-right: 20px;
 }
 #prototypes li {
-  float: left; 
+  float: left;
   padding: 10px 7px;
   position: relative;
 }
@@ -59,7 +59,7 @@ h3 {
 }
 #prototypes li .proto_preview {
   width: 175px;
-  height: 135px; 
+  height: 135px;
   border: 1px solid #999;
   background-color: #F3F6F9;
   position: relative;
@@ -80,7 +80,7 @@ h3 {
   color: #E0E0F9;
   font-weight: bold;
   font-family: 'Helvetica';
-  position: absolute:
+  position: absolute;
   width: 100%;
   text-align: center;
   padding-top: 8px;
@@ -88,31 +88,40 @@ h3 {
 
 #asset { margin-bottom: 20px; }
 
-#selector { position: relative; width: 800px; }
-div.scrollable { 
-    position:relative; 
-    overflow:hidden;          
+#selector {
+    position: relative;
+    width: 800px;
+}
+div.scrollable {
+    position:relative;
+    overflow:hidden;
     width:765px;
-    height:188px; 
+    height:188px;
     margin-left: 20px;
-} 
-a.next { margin-top: 70px; margin-left: 5px; position: absolute; right: -5px; }
-a.prev { margin-top: 70px; margin-right: 5px;  position: absolute; }
-div.scrollable #prototypes {     
-    width:20000em;     
-    position:absolute;         
-} 
- 
-div.items div.active { 
-    border:1px inset #ccc;         
-    background-color:#fff; 
+a.next {
+    margin-top: 70px;
+    margin-left: 5px;
+    position: absolute;
+    right: -5px;
+}
+a.prev {
+    margin-top: 70px;
+    margin-right: 5px;
+    position: absolute;
+}
+div.scrollable #prototypes {
+    width:20000em;
+    position:absolute;
 }
 
+div.items div.active {
+    border:1px inset #ccc;
+    background-color:#fff;
+}
 div.scrollable {
     float:left;
     margin-bottom: 20px;
 }
-
 a.prev, a.next, a.prevPage, a.nextPage {
     display:block;
     width:18px;
@@ -123,14 +132,14 @@ a.prev, a.next, a.prevPage, a.nextPage {
 }
 
 a.prev:hover, a.next:hover, a.prevPage:hover, a.nextPage:hover {
-    background-position:0px -18px;      
+    background-position:0px -18px;
 }
 
 a.disabled {
-    visibility:hidden !important;       
+    visibility:hidden !important;
 }
 
 a.next, a.nextPage {
     background-image:url(../js/right.png);
-        clear:right;
+    clear:right;
 }

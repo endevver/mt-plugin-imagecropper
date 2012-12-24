@@ -1,4 +1,10 @@
-<mt:setvarblock name="page_title"><__trans phrase="Edit Thumbnail Prototype"><mt:else><__trans phrase="Create Thumbnail Prototype"></mt:if></mt:setvarblock>
+<mt:setvarblock name="page_title">
+    <mt:If name="id">
+        <__trans phrase="Edit Thumbnail Prototype">
+    <mt:Else>
+        <__trans phrase="Create Thumbnail Prototype">
+    </mt:If>
+</mt:setvarblock>
 <mt:setvarblock name="html_head" append="1">
 <link rel="stylesheet" href="<mt:var name="static_uri">plugins/ImageCropper/css/app.css" type="text/css" />
 <script type="text/javascript" charset="utf-8">
