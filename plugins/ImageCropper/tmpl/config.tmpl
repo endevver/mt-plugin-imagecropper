@@ -1,0 +1,76 @@
+<mtapp:Setting
+    id="default_quality"
+    label="Default Quality"
+    hint="A higher number creates a higher quality image, though its file size will also be larger. A selection in the range of 40-80 is most likely the best choice. This value can be overridden for each cropped thumbnail."
+    show_hint="1">
+    <select name="default_quality" id="default_quality">
+        <option value="1"
+            <mt:If name="default_quality" eq="1">selected</mt:If>>
+            1 (Lowest)
+        </option>
+        <option value="10"
+            <mt:If name="default_quality" eq="10">selected</mt:If>>
+            10
+        </option>
+        <option value="20"
+            <mt:If name="default_quality" eq="20">selected</mt:If>>
+            20
+        </option>
+        <option value="30"
+            <mt:If name="default_quality" eq="30">selected</mt:If>>
+            30
+        </option>
+        <option value="40"
+            <mt:If name="default_quality" eq="40">selected</mt:If>>
+            40
+        </option>
+        <option value="50"
+            <mt:If name="default_quality" eq="50">selected</mt:If>>
+            50
+        </option>
+        <option value="60"
+            <mt:If name="default_quality" eq="60">selected</mt:If>>
+            60
+        </option>
+        <option value="70"
+            <mt:If name="default_quality" eq="70">selected</mt:If>>
+            70
+        </option>
+        <option value="80"
+            <mt:If name="default_quality" eq="80">selected</mt:If>>
+            80
+        </option>
+        <option value="90"
+            <mt:If name="default_quality" eq="90">selected</mt:If>>
+            90
+        </option>
+        <option value="100"
+            <mt:If name="default_quality" eq="100">selected</mt:If>>
+            100 (Highest)
+        </option>
+    </select>
+</mtapp:Setting>
+
+<mtapp:Setting
+    id="annotate_fontfam"
+    label="Annotation Font"
+    hint="The font used to add the annotation text. Note that the font specified here must be installed on the server. If the font is not found, it will fall-back to the default sans serif typeface."
+    show_hint="1">
+    <input type="text"
+        name="annotate_fontfam"
+        id="annotate_fontfam"
+        class="full full-width"
+        value="<mt:Var name="annotate_fontfam" escape="html">">
+</mtapp:Setting>
+
+<mtapp:Setting
+    id="annotate_fontsize"
+    label="Annotation Font Size"
+    hint="The point size of the annotated text; this value must be a number. This value can be overridden for each cropped thumbnail."
+    show_hint="1">
+    <input type="text"
+        name="annotate_fontsize"
+        id="annotate_fontsize"
+        class="full full-width"
+        value="<mt:Var name="annotate_fontsize" escape="html">">
+</mtapp:Setting>
