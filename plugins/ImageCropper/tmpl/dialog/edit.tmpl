@@ -28,7 +28,12 @@
     label="<__trans phrase="Label">"
     hint="Enter in a very short label that will be used to help you identify any thumbnail derived from this prototype."
     show_hint="1">
-      <input id="label" type="text" name="label" value="<mt:var name="label" />" class="full-width" />
+      <input
+          id="label"
+          type="text"
+          name="label"
+          class="title full full-width"
+          value="<mt:Var name="label" escape="html"/>">
 </mtapp:setting>
 
 <mtapp:setting
@@ -37,7 +42,12 @@
     label="<__trans phrase="Max Width">"
     hint="Enter in the max width of the thumbnail."
     show_hint="1">
-      <input id="max_width" type="text" name="max_width" value="<mt:var name="max_width" />" /><br />
+      <input
+          id="max_width"
+          type="text"
+          name="max_width"
+          class="full full-width"
+          value="<mt:Var name="max_width" />" />
 </mtapp:setting>
 
 <mtapp:setting
@@ -46,7 +56,12 @@
     label="<__trans phrase="Max Height">"
     hint="Enter in the max height of the thumbnail."
     show_hint="1">
-      <input id="max_height" type="text" name="max_height" value="<mt:var name="max_height" />" /><br />
+      <input
+          id="max_height"
+          type="text"
+          name="max_height"
+          class="full full-width"
+          value="<mt:Var name="max_height" />" />
 </mtapp:setting>
 
 <mt:ignore>
@@ -78,13 +93,14 @@
             type="submit"
             accesskey="s"
             title="<__trans phrase="Continue">"
-            class="primary-button"
+            class="primary action button primary-button"
             ><__trans phrase="Continue"></button>
         <button
             onclick="closeDialog(); return false"
             type="submit"
             accesskey="x"
             title="<__trans phrase="Cancel (x)">"
+            class="action button mt-close-dialog"
             ><__trans phrase="Cancel"></button>
     </div>
 </div>
