@@ -52,7 +52,16 @@ object_types:
 
 applications:
   cms:
-    menus: 
+    menus:
+      # MT5 compatibility: add to the Settings menu
+      settings:image_cropper:
+        label: Thumbnail Prototypes
+        mode: list
+        args:
+            _type: thumbnail_prototype
+        order: 500
+        view: blog
+      # MT4 compatibility: add to the Preferences menu
       prefs:image_cropper:
         label: Thumbnail Prototypes
         mode: list_prototypes
