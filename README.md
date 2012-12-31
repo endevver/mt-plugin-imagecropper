@@ -20,12 +20,7 @@ This utility facilitates that process.
 ## Requirements ##
 
 * Movable Type 4.x or any version of Melody
-    * **IMPORTANT:** Problems HAVE been been reported running Image
-      Cropper with **Movable Type 5.x**, which we do not currently
-      support. (see [tickets][] and [discussions][] for further details)
-
-[tickets]: https://endevver.lighthouseapp.com/projects/34923-image-cropper/tickets/bins/43047
-[discussions]: http://help.endevver.com/search?q=Image+Cropper&t=d
+* Movable Type 5.1 or greater
 
 ## Features ##
 
