@@ -37,7 +37,7 @@ settings:
         default: 10
 
 config_settings:
-  DefaultCroppedImageText: 
+  DefaultCroppedImageText:
     default: 'Created by "Image Cropper"'
 
 tags:
