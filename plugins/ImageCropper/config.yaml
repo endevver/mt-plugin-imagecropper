@@ -72,3 +72,30 @@ applications:
           label: 'Generate Thumbnails'
           order: 100
           mode: manage_thumbnails
+
+listing_screens:
+    thumbnail_prototype:
+        primary: 'label'
+        default_sort_key: 'label'
+
+list_properties:
+    thumbnail_prototype: $ImageCropper::ImageCropper::Prototype::list_properties
+
+list_actions:
+    thumbnail_prototype:
+        delete:
+            label: 'Delete'
+            order: 200
+            mode: delete_prototype
+            continue_prompt: 'Are you sure you want to delete the selected prototype(s)?'
+            button: 1
+
+content_actions:
+    thumbnail_prototype:
+        create:
+            label: 'Create a new thumbnail prototype'
+            order: 100
+            dialog: 1
+            mode: edit_prototype
+            class: 'icon-create'
+
