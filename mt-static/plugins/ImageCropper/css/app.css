@@ -84,6 +84,7 @@ h3 {
   width: 100%;
   text-align: center;
   padding-top: 8px;
+  cursor: pointer;
 }
 
 #asset { margin-bottom: 20px; }
