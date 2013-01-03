@@ -194,10 +194,16 @@ sub save_prototype {
 
     $obj->save or return $app->error( $obj->errstr );
 
-    my $cgi = $app->{cfg}->CGIPath . $app->{cfg}->AdminScript;
-    $app->redirect( "$cgi?__mode=list_prototypes&blog_id="
-          . $q->param('blog_id')
-          . "&prototype_saved=1" );
+    if (MT->product_version =~ /^5/) {
+        return $app->redirect(
+            $app->mt_uri . "?__mode=list&_type=thumbnail_prototype&blog_id="
+                . $q->param('blog_id') . "&prototype_saved=1" );
+    }
+    else {
+        return $app->redirect(
+            $app->mt_uri . "?__mode=list_prototypes&blog_id="
+                . $q->param('blog_id') . "&prototype_saved=1" );
+    }
 }
 
 sub edit_prototype {
@@ -397,6 +403,16 @@ sub gen_thumbnails_start {
     $param->{has_prototypes} = $#loop >= 0;
     $param->{asset_label}    = defined $obj->label ? $obj->label
                                                    : $obj->file_name;
+
+    my $plugin = MT->component('imagecropper');
+    $param->{annotation_size} = $plugin->get_config_value(
+        'annotate_fontsize',
+        'blog:' . $obj->blog_id
+    );
+    $param->{default_quality} = $plugin->get_config_value(
+        'default_quality',
+        'blog:' . $obj->blog_id
+    );
 
     my $tmpl = $app->load_tmpl( 'start.tmpl', $param );
     my $ctx = $tmpl->context;

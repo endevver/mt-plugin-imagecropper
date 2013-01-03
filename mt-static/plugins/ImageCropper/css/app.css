@@ -1,10 +1,14 @@
 h3 {
   margin-bottom: 20px;
   border-bottom: 1px solid #aaa;
+  clear: both;
 }
 
 #annotation-settings {
   display: none;
+  float: left;
+  width: 100%;
+  margin-left: 20px;
 }
 .settings-group .field {
   width: auto;
@@ -98,7 +102,10 @@ div.scrollable {
     overflow:hidden;
     width:765px;
     height:188px;
+    float:left;
     margin-left: 20px;
+    margin-bottom: 20px;
+}
 a.next {
     margin-top: 70px;
     margin-left: 5px;
@@ -119,10 +126,7 @@ div.items div.active {
     border:1px inset #ccc;
     background-color:#fff;
 }
-div.scrollable {
-    float:left;
-    margin-bottom: 20px;
-}
+
 a.prev, a.next, a.prevPage, a.nextPage {
     display:block;
     width:18px;
@@ -143,4 +147,10 @@ a.disabled {
 a.next, a.nextPage {
     background-image:url(../js/right.png);
     clear:right;
+}
+
+div.step { margin-left: 20px;}
+
+div.actions-bar {
+    clear: both;
 }
