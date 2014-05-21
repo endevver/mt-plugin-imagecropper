@@ -337,8 +337,14 @@ sub gen_thumbnails_start {
 
     my ( $bw, $bh ) = _box_dim($obj);
     my @protos;
-    my @custom =
-      MT->model('thumbnail_prototype')->load( { blog_id => $app->blog->id } );
+    my @custom = $app->model('thumbnail_prototype')->load(
+        {
+            blog_id => $app->blog->id,
+        },
+        {
+            sort => 'label',
+        }
+    );
     foreach (@custom) {
         push @protos,
           { id         => $_->id,
