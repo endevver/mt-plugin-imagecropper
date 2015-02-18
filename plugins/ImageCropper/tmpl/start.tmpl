@@ -2,16 +2,16 @@
 
 <mt:setvarblock name="html_head" append="1">
     <mt:If tag="Version" lt="5">
-    <script src="<mt:StaticWebPath>plugins/ImageCropper/js/jquery-1.4.2.min.js"></script>
-    <script src="<mt:StaticWebPath>plugins/ImageCropper/js/ui.core.js"></script>
-    <script src="<mt:StaticWebPath>plugins/ImageCropper/js/ui.dialog.js"></script>
-    <script src="<mt:StaticWebPath>plugins/ImageCropper/js/ui.resizable.js"></script>
-    <script src="<mt:StaticWebPath>plugins/ImageCropper/js/ui.draggable.js"></script>
+    <script src="<mt:Var name="static_uri">plugins/ImageCropper/js/jquery-1.4.2.min.js"></script>
+    <script src="<mt:Var name="static_uri">plugins/ImageCropper/js/ui.core.js"></script>
+    <script src="<mt:Var name="static_uri">plugins/ImageCropper/js/ui.dialog.js"></script>
+    <script src="<mt:Var name="static_uri">plugins/ImageCropper/js/ui.resizable.js"></script>
+    <script src="<mt:Var name="static_uri">plugins/ImageCropper/js/ui.draggable.js"></script>
     </mt:If>
-    <script src="<mt:StaticWebPath>plugins/ImageCropper/js/jquery.dimensions.js"></script>
-    <script src="<mt:StaticWebPath>plugins/ImageCropper/js/jquery.scrollable-1.0.1.min.js"></script>
-    <script src="<mt:StaticWebPath>plugins/ImageCropper/js/jquery.scrollTo.min.js"></script>
-    <script src="<mt:StaticWebPath>plugins/ImageCropper/js/jquery.Jcrop.js"></script>
+    <script src="<mt:Var name="static_uri">plugins/ImageCropper/js/jquery.dimensions.js"></script>
+    <script src="<mt:Var name="static_uri">plugins/ImageCropper/js/jquery.scrollable-1.0.1.min.js"></script>
+    <script src="<mt:Var name="static_uri">plugins/ImageCropper/js/jquery.scrollTo.min.js"></script>
+    <script src="<mt:Var name="static_uri">plugins/ImageCropper/js/jquery.Jcrop.js"></script>
     <script type="text/javascript">
     var coords;
     var protos    = Array();
@@ -138,9 +138,9 @@
       return true;
     }
     </script>
-    <link rel="stylesheet" href="<mt:StaticWebPath>plugins/ImageCropper/css/app.css" type="text/css">
-    <link rel="stylesheet" href="<mt:StaticWebPath>jquery/themes/flora/flora.dialog.css" type="text/css">
-    <link rel="stylesheet" href="<mt:StaticWebPath>plugins/ImageCropper/css/jquery.Jcrop.css" type="text/css">
+    <link rel="stylesheet" href="<mt:Var name="static_uri">plugins/ImageCropper/css/app.css" type="text/css">
+    <link rel="stylesheet" href="<mt:Var name="static_uri">jquery/themes/flora/flora.dialog.css" type="text/css">
+    <link rel="stylesheet" href="<mt:Var name="static_uri">plugins/ImageCropper/css/jquery.Jcrop.css" type="text/css">
 </mt:setvarblock>
 
 <mt:include name="include/header.tmpl">
@@ -177,8 +177,8 @@
     <div class="proto_preview">
       <mt:if name="thumbnail_url"><img src="<mt:var name="thumbnail_url">" <mt:unless name="smaller_vp"><mt:if name="is_tall">height="135"<mt:else>width="175"</mt:if></mt:unless> /><mt:else><span>?</span></mt:if>
     </div>
-    <div class="proto_action"><a href="javascript:void(0);"><img src="<mt:StaticWebPath>plugins/ImageCropper/css/delete.gif" /></a></div>
-    <div class="proto_progress"><img src="<mt:StaticWebPath>plugins/ImageCropper/css/indicator.gif" width="16" height="16" /></div>
+    <div class="proto_action"><a href="javascript:void(0);"><img src="<mt:Var name="static_uri">plugins/ImageCropper/css/delete.gif" /></a></div>
+    <div class="proto_progress"><img src="<mt:Var name="static_uri">plugins/ImageCropper/css/indicator.gif" width="16" height="16" /></div>
     <div class="proto_size"><mt:var name="cropped_size" default=""></div>
     <div class="proto_info">
       <mt:var name="proto_label"><br />
