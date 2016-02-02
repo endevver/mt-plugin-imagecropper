@@ -194,16 +194,9 @@ sub save_prototype {
 
     $obj->save or return $app->error( $obj->errstr );
 
-    if (MT->product_version =~ /^5/) {
-        return $app->redirect(
-            $app->mt_uri . "?__mode=list&_type=thumbnail_prototype&blog_id="
-                . $q->param('blog_id') . "&prototype_saved=1" );
-    }
-    else {
-        return $app->redirect(
-            $app->mt_uri . "?__mode=list_prototypes&blog_id="
-                . $q->param('blog_id') . "&prototype_saved=1" );
-    }
+    return $app->redirect(
+        $app->mt_uri . "?__mode=list&_type=thumbnail_prototype&blog_id="
+            . $q->param('blog_id') . "&prototype_saved=1" );
 }
 
 sub edit_prototype {
@@ -267,63 +260,6 @@ sub load_ts_prototypes {
         }
     }
     return \@protos;
-}
-
-sub list_prototypes {
-    my $app = shift;
-    my ($params) = @_ || {};
-    my $q = $app->can('query') ? $app->query : $app->param;
-    my $blog     = $app->blog;
-
-    if ( $blog && $app->blog->template_set ) {
-        my $loop = load_ts_prototypes($app);
-        $params->{prototype_loop} = $loop;
-        $params->{template_set_name} =
-          $app->registry('template_sets')->{ $blog->template_set }->{label};
-    }
-    $params->{prototype_saved} = $q->param('prototype_saved');
-    $params->{screen_id}       = 'list-prototypes';
-
-    my $code = sub {
-        my ( $obj, $row ) = @_;
-
-        $row->{id}         = $obj->id;
-        $row->{blog_id}    = $obj->blog_id;
-        $row->{label}      = $obj->label;
-        $row->{max_width}  = $obj->max_width;
-        $row->{max_height} = $obj->max_height;
-
-        my $ts              = $row->{created_on};
-        my $datetime_format = MT::App::CMS::LISTING_DATETIME_FORMAT();
-        my $time_formatted  = format_ts(
-            $datetime_format,
-            $ts,
-            $app->blog || undef,
-            (     $app->user
-                ? $app->user->preferred_language
-                : undef
-            )
-        );
-        $row->{created_on_relative} =
-          relative_date( $ts, time, $app->blog ? $app->blog : undef );
-        $row->{created_on_formatted} = $time_formatted;
-    };
-
-    my $plugin = MT->component('ImageCropper');
-
-    $app->listing( {
-            type  => 'thumbnail_prototype',
-            terms => { blog_id => ( $app->blog ? $app->blog->id : 0 ), },
-            args  => {
-                sort      => 'created_on',
-                direction => 'descend',
-            },
-            listing_screen => 1,
-            code           => $code,
-            template       => $plugin->load_tmpl('list.tmpl'),
-            params         => $params,
-        }
-    );
 }
 
 sub gen_thumbnails_start {

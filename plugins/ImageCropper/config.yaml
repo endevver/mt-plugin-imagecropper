@@ -53,7 +53,6 @@ object_types:
 applications:
   cms:
     menus:
-      # MT5 compatibility: add to the Settings menu
       settings:image_cropper:
         label: Thumbnail Prototypes
         mode: list
@@ -61,14 +60,7 @@ applications:
             _type: thumbnail_prototype
         order: 500
         view: blog
-      # MT4 compatibility: add to the Preferences menu
-      prefs:image_cropper:
-        label: Thumbnail Prototypes
-        mode: list_prototypes
-        order: 500
-        view: blog
     methods:
-      list_prototypes: $ImageCropper::ImageCropper::Plugin::list_prototypes
       edit_prototype: $ImageCropper::ImageCropper::Plugin::edit_prototype
       delete_prototype: $ImageCropper::ImageCropper::Plugin::del_prototype
       save_prototype: $ImageCropper::ImageCropper::Plugin::save_prototype

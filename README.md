@@ -18,8 +18,10 @@ This utility facilitates that process.
 
 ## Requirements ##
 
-* Movable Type 4.x or any version of Melody
 * Movable Type 5.1 or greater
+* Movable Type 6.x
+
+Movable Type 4.x is supported with [version 1.1.3](https://github.com/endevver/mt-plugin-imagecropper/releases/tag/v1.1.3).
 
 ## Features ##
 
