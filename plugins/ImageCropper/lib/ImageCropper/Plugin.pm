@@ -123,19 +123,6 @@ sub hdlr_default_text {
     return $cfg->DefaultCroppedImageText;
 }
 
-sub del_prototype {
-    my ($app) = @_;
-    $app->validate_magic or return;
-    my $q = $app->can('query') ? $app->query : $app->param;
-    my @protos = $q->param('id');
-    for my $pid (@protos) {
-        my $p = MT->model('thumbnail_prototype')->load($pid) or next;
-        $p->remove;
-    }
-    $app->add_return_arg( prototype_removed => 1 );
-    $app->call_return;
-}
-
 sub find_prototype_id {
     my ( $ctx, $label ) = @_;
     my $blog = $ctx->stash('blog');
@@ -180,48 +167,6 @@ sub _hdlr_pass_tokens_else {
     defined( $out = $b->build( $ctx, $ctx->stash('tokens_else'), $cond ) )
       or return $ctx->error( $b->errstr );
     return $out;
-}
-
-sub save_prototype {
-    my $app = shift;
-    my $param;
-    my $q = $app->can('query') ? $app->query : $app->param;
-    my $obj = MT->model('thumbnail_prototype')->load( $q->param('id') )
-      || MT->model('thumbnail_prototype')->new;
-
-    $obj->$_( $q->param($_) )
-      foreach (qw(blog_id max_width max_height label default_tags));
-
-    $obj->save or return $app->error( $obj->errstr );
-
-    return $app->redirect(
-        $app->mt_uri . "?__mode=list&_type=thumbnail_prototype&blog_id="
-            . $q->param('blog_id') . "&prototype_saved=1" );
-}
-
-sub edit_prototype {
-    my $app     = shift;
-    my ($param) = @_;
-    my $q       = $app->can('query') ? $app->query : $app->param;
-    my $blog    = MT::Blog->load( $q->param('blog_id') );
-
-    $param ||= {};
-
-    my $obj;
-    if ( $q->param('id') ) {
-        $obj = MT->model('thumbnail_prototype')->load( $q->param('id') );
-    }
-    else {
-        $obj = MT->model('thumbnail_prototype')->new();
-    }
-
-    $param->{blog_id}    = $blog->id;
-    $param->{id}         = $obj->id;
-    $param->{label}      = $obj->label;
-    $param->{max_width}  = $obj->max_width;
-    $param->{max_height} = $obj->max_height;
-    $param->{screen_id}  = 'edit-prototype';
-    return $app->load_tmpl( 'dialog/edit.tmpl', $param );
 }
 
 sub load_ts_prototype {

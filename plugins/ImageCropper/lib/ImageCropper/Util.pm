@@ -1,6 +1,8 @@
 package ImageCropper::Util;
 
 use strict;
+use warnings;
+
 use base 'Exporter';
 our @EXPORT_OK = qw( crop_filename crop_image annotate file_size find_prototype_id find_cropped_asset );
 
@@ -36,7 +38,6 @@ sub crop_image {
         'y'      => $y,
     );
     if ($qual) {
-        MT->log( { message => "Quality of image: $qual" } );
         $magick->Set( quality => $qual );
     }
     return $image->error(

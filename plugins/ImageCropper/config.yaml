@@ -37,42 +37,43 @@ settings:
         default: 10
 
 config_settings:
-  DefaultCroppedImageText:
-    default: 'Created by "Image Cropper"'
+    DefaultCroppedImageText:
+        default: 'Created by "Image Cropper"'
 
 tags:
-  block:
-    CroppedAsset: $ImageCropper::ImageCropper::Plugin::hdlr_cropped_asset
-  function:
-    DefaultCroppedImageText: $ImageCropper::ImageCropper::Plugin::hdlr_default_text
+    block:
+        CroppedAsset: $ImageCropper::ImageCropper::Tags::hdlr_cropped_asset
+    function:
+        DefaultCroppedImageText: $ImageCropper::ImageCropper::Tags::hdlr_default_text
 
 object_types:
     thumbnail_prototype: ImageCropper::Prototype
     thumbnail_prototype_map: ImageCropper::PrototypeMap
 
 applications:
-  cms:
-    menus:
-      settings:image_cropper:
-        label: Thumbnail Prototypes
-        mode: list
-        args:
-            _type: thumbnail_prototype
-        order: 500
-        view: blog
-    methods:
-      edit_prototype: $ImageCropper::ImageCropper::Plugin::edit_prototype
-      delete_prototype: $ImageCropper::ImageCropper::Plugin::del_prototype
-      save_prototype: $ImageCropper::ImageCropper::Plugin::save_prototype
-      manage_thumbnails: $ImageCropper::ImageCropper::Plugin::gen_thumbnails_start
-      imagecropper_crop: $ImageCropper::ImageCropper::Plugin::crop
-      imagecropper_delete_crop: $ImageCropper::ImageCropper::Plugin::delete_crop
-    page_actions:
-      asset:
-        gen_thumbnails: 
-          label: 'Generate Thumbnails'
-          order: 100
-          mode: manage_thumbnails
+    cms:
+        menus:
+            settings:image_cropper:
+                label: Thumbnail Prototypes
+                mode: list
+                args:
+                    _type: thumbnail_prototype
+                order: 500
+                view: blog
+        methods:
+            edit_prototype:    $ImageCropper::ImageCropper::Prototype::edit_prototype
+            delete_prototype:  $ImageCropper::ImageCropper::Prototype::del_prototype
+            save_prototype:    $ImageCropper::ImageCropper::Prototype::save_prototype
+            manage_thumbnails: $ImageCropper::ImageCropper::Plugin::gen_thumbnails_start
+            imagecropper_crop: $ImageCropper::ImageCropper::Plugin::crop
+            imagecropper_delete_crop: $ImageCropper::ImageCropper::Plugin::delete_crop
+
+page_actions:
+    asset:
+        gen_thumbnails:
+            label: 'Generate Thumbnails'
+            order: 100
+            mode:  manage_thumbnails
 
 listing_screens:
     thumbnail_prototype:
@@ -89,7 +90,6 @@ list_actions:
             order: 200
             mode: delete_prototype
             continue_prompt: 'Are you sure you want to delete the selected prototype(s)?'
-            button: 1
 
 content_actions:
     thumbnail_prototype:
