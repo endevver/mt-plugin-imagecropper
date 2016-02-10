@@ -140,28 +140,28 @@ sub find_cropped_asset {
     my $blog    = MT->model('blog')->load($blog_id);
     my $ts      = $blog->template_set;
 
+    my $prototype = MT->model('thumbnail_prototype')->load({
+        blog_id => $blog_id,
+        label   => $label,
+    });
+
     my $map;
-    my $prototype = MT->model('thumbnail_prototype')->load( {
-            blog_id => $blog_id,
-            label   => $label,
-        }
-    );
     if ($prototype) {
-        # MT->log({ message => "prototype found: " . $prototype->id });
-        $map = MT->model('thumbnail_prototype_map')->load( {
-                prototype_key => 'custom_' . $prototype->id,
-                asset_id      => $asset->id,
-            }
-        );
+        my $key = defined $prototype->basename
+            ? $prototype->basename
+            : 'custom_' . $prototype->id;
+
+        $map = MT->model('thumbnail_prototype_map')->load({
+            prototype_key => $key,
+            asset_id      => $asset->id,
+        });
     }
     elsif ( my $id = find_prototype_id( $ts, $label ) ) {
-
         # MT->log({ message => "prototype not found, consulted registry: " . $id });
-        $map = MT->model('thumbnail_prototype_map')->load( {
-                prototype_key => $ts . "___" . $id,
-                asset_id      => $asset->id,
-            }
-        );
+        $map = MT->model('thumbnail_prototype_map')->load({
+            prototype_key => $ts . "___" . $id,
+            asset_id      => $asset->id,
+        });
     }
 
     if ($map) {
@@ -169,6 +169,5 @@ sub find_cropped_asset {
     }
     return undef;
 }
-
 
 1;

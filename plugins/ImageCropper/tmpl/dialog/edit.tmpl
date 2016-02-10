@@ -21,6 +21,7 @@
 <input type="hidden" name="__mode" value="save_prototype" />
 <input type="hidden" name="blog_id" value="<mt:var name="blog_id">" />
 <input type="hidden" name="id" value="<mt:var name="id">" />
+<input type="hidden" name="basename" value="<mt:Var name="basename">" />
 
 <mtapp:setting
     id="label"
@@ -64,37 +65,26 @@
           value="<mt:Var name="max_height" />" />
 </mtapp:setting>
 
-<mt:ignore>
 <mtapp:setting
-    id="pattern_type"
-    label_class="top-label"
-    label="<__trans phrase="Pattern">"
-    show_label="0"
-    show_hint="1">
-      <input type="checkbox" id="opts_regex" name="regex" value="1" <mt:if name="regex">checked </mt:if>/> <label for="opts_regex">Regular Expression</label>
-      &nbsp;&nbsp;
-      <input type="checkbox" id="opts_global" name="global" value="1" <mt:if name="global">checked </mt:if>/> <label for="opts_global">Link all occurences</label>
-      &nbsp;&nbsp;
-      <input type="checkbox" id="opts_case" name="case" value="1" <mt:if name="case">checked </mt:if>/> <label for="opts_case">Case Insensitive?</label>
+    id="allow_autocrop"
+    label_class="top-label">
+        <input
+            id="autocrop"
+            type="checkbox"
+            name="autocrop"
+            class="cb"
+            <mt:If name="autocrop">checked</mt:If> />
+        <label for="autocrop">Enable Auto-Crop for this Prototype?</label>
 </mtapp:setting>
-
-<mtapp:setting
-    id="url"
-    label_class="top-label"
-    label="<__trans phrase="Destination URL">"
-    show_hint="0">
-      <input id="url" type="text" name="url" value="<mt:var name="destination" />" class="full-width" />
-</mtapp:setting>
-</mt:ignore>
 
 <div class="actions-bar">
     <div class="actions-bar-inner pkg actions">
         <button
             type="submit"
             accesskey="s"
-            title="<__trans phrase="Continue">"
+            title="<__trans phrase="Save">"
             class="primary action button primary-button"
-            ><__trans phrase="Continue"></button>
+            ><__trans phrase="Save"></button>
         <button
             type="submit"
             accesskey="x"

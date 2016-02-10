@@ -7,8 +7,8 @@ use strict;
 use warnings;
 
 use Carp qw( croak longmess confess );
-use MT::Util qw(    relative_date   ts2epoch format_ts     caturl
-                 offset_time_list   epoch2ts offset_time          );
+use MT::Util qw( relative_date     ts2epoch format_ts    caturl
+                 offset_time_list  epoch2ts offset_time  dirify );
 use ImageCropper::Util qw( crop_filename crop_image annotate file_size find_cropped_asset );
 use Sub::Install;
 
@@ -18,17 +18,21 @@ my %target;
 
 sub post_remove_asset {
     my ( $cb, $obj ) = @_;
-    my @maps =
-      MT->model('thumbnail_prototype_map')->load( { asset_id => $obj->id } );
+
+    my @maps = MT->model('thumbnail_prototype_map')->load({
+        asset_id => $obj->id,
+    });
     foreach my $map (@maps) {
         my $a = MT->model('asset')->load( $map->cropped_asset_id );
         $a->remove   if $a;
         $map->remove if $map;
     }
-    my $ptmap =
-      MT->model('thumbnail_prototype_map')
-      ->load( { cropped_asset_id => $obj->id } );
+
+    my $ptmap = MT->model('thumbnail_prototype_map')->load({
+        cropped_asset_id => $obj->id,
+    });
     $ptmap->remove if $ptmap;
+
     return 1;
 }
 
@@ -177,36 +181,47 @@ sub load_ts_prototype {
       ->{$id};
 }
 
-sub load_ts_prototypes {
+# Create prototypes from template set/theme definitions. This is run when
+# visiting the Manually Generate Thumbnails screen and when choosing to
+# auto-crop images.
+sub create_ts_prototypes {
     my $app  = shift;
-    my $blog = $app->blog;
+    my ($blog_id) = @_;
+    my $blog = $app->model('blog')->load( $blog_id );
 
     my @protos;
     if ( $blog->template_set ) {
         my $ts = $blog->template_set;
-        my $ps =
-          $app->registry('template_sets')->{$ts}->{thumbnail_prototypes};
+        my $ps = $app->registry('template_sets')->{$ts}->{thumbnail_prototypes};
         foreach ( keys %$ps ) {
-            my $p = $ps->{$_};
+            my $p   = $ps->{$_};
+            my $key = dirify( $ts . '__' . $_ );
 
             # If the required values for this prototype are missing, give up.
             next unless $p->{label} && $p->{max_width} && $p->{max_height};
 
-            push @protos,
-              { id           => $_,
-                type         => 'template_set',
-                key          => "$ts::$_",
-                template_set => $ts,
-                blog_id      => $blog->id,
-                label        => $p->{label},
-                max_width    => $p->{max_width},
-                max_height   => $p->{max_height},
-              };
+            # Save this theme-based prototype for future use.
+            unless (
+                $app->model('thumbnail_prototype')->exist({
+                    blog_id  => $blog->id,
+                    basename => $key,
+                })
+            ) {
+                my $prototype = $app->model('thumbnail_prototype')->new();
+                $prototype->blog_id(    $blog->id           );
+                $prototype->label(      &{ $p->{label} }    );
+                $prototype->basename(   $key                );
+                $prototype->max_width(  $p->{max_width}     );
+                $prototype->max_height( $p->{max_height}    );
+                $prototype->autocrop(   $p->{autocrop} || 1 );
+
+                $prototype->save or die $prototype->errstr;
+            }
         }
     }
-    return \@protos;
 }
 
+# The manuall generate thumbnails screen.
 sub gen_thumbnails_start {
     my $app = shift;
     my ($param) = @_ || {};
@@ -217,6 +232,10 @@ sub gen_thumbnails_start {
       or return $app->error('Could not load asset.');
 
     my ( $bw, $bh ) = _box_dim($obj);
+
+    # Create any theme-based prototypes that might be needed in this blog.
+    create_ts_prototypes($app, $app->blog->id );
+
     my @protos;
     my @custom = $app->model('thumbnail_prototype')->load(
         {
@@ -227,31 +246,30 @@ sub gen_thumbnails_start {
         }
     );
     foreach (@custom) {
-        push @protos,
-          { id         => $_->id,
-            key        => 'custom_' . $_->id,
+        push @protos, {
+            id         => $_->id,
+            key        => ($_->basename ? $_->basename : 'custom_' . $_->id),
             label      => $_->label,
             max_width  => $_->max_width,
             max_height => $_->max_height,
-          };
+        };
     }
-    my $tsprotos = load_ts_prototypes($app);
-    foreach (@$tsprotos) {
-        push @protos,
-          { id         => $_->{template_set} . '___' . $_->{id},
-            key        => $_->{template_set} . '___' . $_->{id},
-            label      => $_->{label},
-            max_width  => $_->{max_width},
-            max_height => $_->{max_height},
-          };
-    }
+
     my @loop;
     foreach my $p (@protos) {
-        my $map = MT->model('thumbnail_prototype_map')->load( {
-                asset_id      => $obj->id,
-                prototype_key => $p->{key},
-            }
-        );
+        # Look for prototype mappings. Theme-built prototypes are saved as
+        # dirified basenames, but previously they just used double colons to
+        # join values which is messy and causes JS trouble. But, since maps may
+        # exist to these old-style keys, look for any in addition to the new
+        # style.
+        my $old_style_key = $p->{key};
+        $old_style_key =~ s/__/::/;
+
+        my $map = MT->model('thumbnail_prototype_map')->load({
+            asset_id      => $obj->id,
+            prototype_key => [$p->{key}, $old_style_key],
+        });
+
         my ( $url, $x, $y, $w, $h, $size );
         if ($map) {
             $x = $map->cropped_x;
@@ -277,9 +295,8 @@ sub gen_thumbnails_start {
             max_width     => $p->{max_width},
             max_height    => $p->{max_height},
             is_tall       => $p->{max_height} > $p->{max_width},
+            # 175x135 thumbnail preview area
             smaller_vp => ( $p->{max_height} < 135 && $p->{max_width} < 175 ),
-
-            # 175x135
         };
     }
     $param->{prototype_loop} = \@loop if @loop;
@@ -307,6 +324,8 @@ sub gen_thumbnails_start {
     return $tmpl;
 }
 
+# Delete a cropped thumnbnail from the manually create interface, clicking a
+# trash can icon in the prototype preview area.
 sub delete_crop {
     my $app  = shift;
     my $q    = $app->can('query') ? $app->query : $app->param;
@@ -314,233 +333,45 @@ sub delete_crop {
     my $id   = $q->param('id');
     my $key  = $q->param('prototype');
 
-    my $oldmap = MT->model('thumbnail_prototype_map')->load( {
-            asset_id      => $id,
-            prototype_key => $key,
-        }
-    );
-    if ($oldmap) {
-        my $oldasset = MT->model('asset')->load( $oldmap->cropped_asset_id );
-        $oldasset->remove()
-          or MT->log( {
-                blog_id => $blog->id,
-                message => "Error removing asset: "
-                  . $oldmap->cropped_asset_id
-            }
-          );
-        $oldmap->remove()
-          or MT->log( {
-                blog_id => $blog->id,
-                message => "Error removing prototype map."
-            }
-          );
-    }
+    _remove_old_asset({
+        asset_id => $id,
+        key      => $key,
+        blog_id  => $blog->id,
+    });
+
     my $result = {
         proto_key => $key,
         success   => 1,
     };
+
     return _send_json_response( $app, $result );
 }
 
+# User has defined a crop area dn clicked the "Crop" button. Do the actual
+# crop/resize to create a thumbnail.
 sub crop {
     my $app  = shift;
-    my $q = $app->can('query') ? $app->query : $app->param;
+    my $q    = $app->can('query') ? $app->query : $app->param;
+    my $id   = $q->param('asset');
     my $blog = $app->blog;
 
-    my $X         = $q->param('x');
-    my $Y         = $q->param('y');
-    my $width     = $q->param('w');
-    my $height    = $q->param('h');
-    my $type      = $q->param('type');
-    my $quality   = $q->param('quality');
-    my $annotate  = $q->param('annotate');
-    my $text      = $q->param('text');
-    my $text_size = $q->param('text_size');
-    my $text_loc  = $q->param('text_loc');
-    my $text_rot  = $q->param('text_rot');
-    my $id        = $q->param('asset');
-    my $key       = $q->param('key');
+    my $asset = $app->model('asset')->load( $id )
+        or return { error => "Asset $id could not be loaded." };
 
-    my $asset = MT->model('asset')->load($id);
-    my $prototype;
-    if ( $key =~ /custom_(\d+)/ ) {
-        $prototype = MT->model('thumbnail_prototype')->load($1);
-    }
-    else {
-        $prototype = MT->model('thumbnail_prototype')->new;
-        my $p = load_ts_prototype( $app, $key );
-        foreach (qw( max_width max_height label )) {
-            $prototype->$_( $p->{$_} );
-        }
-    }
-    my @cropped_file_parts = crop_filename(
-        $asset,
-        Prototype => $key,
-        Type      => $type,
-    );
-
-    my ( $cache_path, $cache_url );
-    my $archivepath = $blog->archive_path;
-    my $archiveurl  = $blog->archive_url;
-    $cache_path = $cache_url = $asset->_make_cache_path( undef, 1 );
-    $cache_path =~ s!%a!$archivepath!;
-
-    $cache_url =~ s!%a!$archiveurl!;
-    my $cropped_path =
-      File::Spec->catfile( $cache_path, @cropped_file_parts );
-
-#MT->log({ blog_id => $blog->id, message => "Cropped filename: $cropped_path" });
-    my $cropped_url = caturl( $cache_url, @cropped_file_parts );
-
-   #MT->log({ blog_id => $blog->id, message => "Cropped URL: $cropped_url" });
-    my ( $base, $path, $ext ) =
-      File::Basename::fileparse( File::Spec->catfile(@cropped_file_parts),
-        qr/[A-Za-z0-9]+$/ );
-
-    my $asset_cropped = new MT::Asset::Image;
-    $asset_cropped->blog_id( $blog->id );
-    $asset_cropped->url($cropped_url);
-    $asset_cropped->file_path($cropped_path);
-    $asset_cropped->file_name("$base$ext");
-    $asset_cropped->file_ext($ext);
-    $asset_cropped->image_width( $prototype->max_width );
-    $asset_cropped->image_height( $prototype->max_height );
-    $asset_cropped->created_by( $app->user->id );
-    $asset_cropped->label(
-        $app->translate(
-            "[_1] ([_2])",
-            $asset->label || $asset->file_name,
-            $prototype->label
-        )
-    );
-    $asset_cropped->parent( $asset->id );
-    $asset_cropped->save;
-
-    my $oldmap = MT->model('thumbnail_prototype_map')->load( {
-            asset_id      => $asset->id,
-            prototype_key => $key,
-        }
-    );
-    if ($oldmap) {
-        my $oldasset = MT->model('asset')->load( $oldmap->cropped_asset_id );
-        if ($oldasset) {
-
-# MT->log({ blog_id => $blog->id, message => "Removing: " . $oldasset->label });
-            $oldasset->remove()
-              or MT->log( {
-                    blog_id => $blog->id,
-                    message => "Error removing asset: "
-                      . $oldmap->cropped_asset_id
-                }
-              );
-        }
-        $oldmap->remove()
-          or MT->log( {
-                blog_id => $blog->id,
-                message => "Error removing prototype map."
-            }
-          );
-    }
-
-    my $map = MT->model('thumbnail_prototype_map')->new;
-    $map->asset_id( $asset->id );
-    $map->prototype_key($key);
-    $map->cropped_asset_id( $asset_cropped->id );
-    $map->cropped_x($X);
-    $map->cropped_y($Y);
-    $map->cropped_w($width);
-    $map->cropped_h($height);
-    $map->save;
-
-    require MT::Image;
-    my $img = MT::Image->new( Filename => $asset->file_path )
-      or MT->log( {
-            blog_id => $blog->id,
-            message => "Error loading image: " . MT::Image->errstr
-        }
-      );
-    my $data = crop_image(
-        $img,
-        Width   => $width,
-        Height  => $height,
-        X       => $X,
-        Y       => $Y,
-        Type    => $type,
-        quality => $quality,
-    );
-    $data = $img->scale(
-        Width  => $prototype->max_width,
-        Height => $prototype->max_height,
-    );
-
-    if ( $annotate && $text ) {
-        my $plugin = MT->component("ImageCropper");
-        my $scope  = "blog:" . $blog->id;
-        my $fam    = $plugin->get_config_value( 'annotate_fontfam', $scope );
-        $data = annotate(
-            $img,
-            text     => $text,
-            family   => $fam,
-            size     => $text_size,
-            location => $text_loc,
-            rotation => $text_rot,
-        );
-    }
-    require MT::FileMgr;
-    my $fmgr = $blog ? $blog->file_mgr : MT::FileMgr->new('Local');
-    unless ($fmgr) {
-        MT->log( {
-                blog_id => $blog->id,
-                message => "Unable to initialize File Manager"
-            }
-        );
-        return undef;
-    }
-    if ( $cache_path =~ /^%r/ ) {
-        my $site_path = $blog->site_path;
-        $cache_path =~ s/%r/$site_path/;
-    }
-    unless ( $fmgr->can_write($cache_path) ) {
-        MT->log( {
-                blog_id => $blog->id,
-                message => "Can't write to: $cache_path"
-            }
-        );
-        return undef;
-    }
-    my $error = '';
-    if ( !-d $cache_path ) {
-
-# MT->log({ blog_id => $blog->id, message => "$cache_path is NOT a directory. Creating..." });
-        require MT::FileMgr;
-        unless ( $fmgr->mkpath($cache_path) ) {
-            MT->log( {
-                    blog_id => $blog->id,
-                    message => "Can't mkpath: $cache_path"
-                }
-            );
-            return undef;
-        }
-    }
-
-    $fmgr->put_data( $data,
-        File::Spec->catfile( $cache_path, @cropped_file_parts ), 'upload' )
-      or $error =
-      MT->translate( "Error creating cropped file: [_1]", $fmgr->errstr );
-
-    if ( $cropped_url =~ /^%r/ ) {
-        my $site_url = $blog->site_url;
-        $site_url    =~ s{/?$}{/};
-        $cropped_url =~ s{%r/?}{$site_url};
-    }
-    my $result = {
-        error        => $error,
-        proto_key    => $key,
-        cropped      => caturl(@cropped_file_parts),
-        cropped_path => $cropped_path,
-        cropped_url  => $cropped_url,
-        cropped_size => file_size($asset_cropped),
-    };
+    my $result = _create_thumbnail({
+        asset          => $asset,
+        prototype_key  => $q->param('key'),
+        w              => $q->param('w'),
+        h              => $q->param('h'),
+        x              => $q->param('x'),
+        y              => $q->param('y'),
+        quality        => $q->param('quality'),
+        annotate       => $q->param('annotate'),
+        text           => $q->param('text'),
+        text_size      => $q->param('text_size'),
+        text_location  => $q->param('text_loc'),
+        text_rotation  => $q->param('text_rot'),
+    });
 
     return _send_json_response( $app, $result );
 }
@@ -571,6 +402,459 @@ sub _box_dim {
         $box_h = $obj->image_height;
     }
     return ( $box_w, $box_h );
+}
+
+# Automatically crop/resize to create thumbnails from the Edit Asset page; user
+# clicked the Automatically Generate Thumbnails page action.
+sub page_action_auto_crop {
+    my ($app) = @_;
+    $app->validate_magic or return;
+    my $q = $app->can('query') ? $app->query : $app->param;
+
+    _auto_crop( $q->param('id') );
+
+    $app->add_return_arg( thumbnails_created => 1 );
+    $app->call_return;
+}
+
+# Can the "Automatically Generate Thumbnails" and "Generate Thumbnails" page
+# actions be displayed for this asset? Check that it's an image asset first.
+sub page_action_condition {
+    my ($app) = MT->instance;
+    my $q = $app->can('query') ? $app->query : $app->param;
+    my $asset_id = $q->param('id');
+
+    return 1 if $app->model('asset')->exist({
+        id    => $asset_id,
+        class => ['image', 'photo'],
+    });
+
+    return 0;
+}
+
+# Automatically crop/resize to create thumbnails from the Manage Assets page;
+# user selected images and chose the Automatically Generate Thumbnails list
+# action.
+sub list_action_auto_crop {
+    my ($app) = @_;
+    $app->validate_magic or return;
+    my $q = $app->can('query') ? $app->query : $app->param;
+    my @asset_ids = $q->param('id');
+
+    for my $asset_id (@asset_ids) {
+        _auto_crop( $asset_id );
+    }
+
+    $app->add_return_arg( thumbnails_created => 1 );
+    $app->call_return;
+}
+
+# Auto crop expects an asset and creates any thumbnails that need to be created.
+sub _auto_crop {
+    my ($asset_id) = @_;
+    my $app      = MT->instance;
+
+    my $asset = $app->model('asset')->load({
+        id    => $asset_id,
+        class => ['image', 'photo'],
+    })
+        or return;
+
+    # Create any theme-based prototypes that might be needed in this blog.
+    create_ts_prototypes($app, $asset->blog_id);
+
+    # Load the necessary prototypes. Some prototypes may have the auto-crop
+    # option disabled.
+    my @prototypes = $app->model('thumbnail_prototype')->load({
+        blog_id  => $asset->blog_id,
+        autocrop => 1,
+    });
+
+    foreach my $prototype (@prototypes) {
+        my $prototype_key = defined $prototype->basename
+            ? $prototype->basename
+            : 'custom_' . $prototype->id;
+
+        # Does a crop with this prototype exist? If yes, give up. We don't want
+        # to auto-crop and potentially destroy a manually cropped image.
+        # Look for prototype mappings. Theme-built prototypes are saved as
+        # dirified basenames, but previously they just used double colons to
+        # join values which is messy and causes JS trouble. But, since maps may
+        # exist to these old-style keys, look for any in addition to the new
+        # style.
+        my $old_style_key = $prototype_key;
+        $old_style_key =~ s/__/::/;
+
+        my $map = $app->model('thumbnail_prototype_map')->load({
+            asset_id      => $asset->id,
+            prototype_key => [$prototype_key, $old_style_key],
+        });
+        return if $map && $app->model('asset')->exist( $map->cropped_asset_id );
+
+        # Is this a cropped child asset? We don't want to create crops of child
+        # assets. That could get into a rabbit hole of a child creating a child
+        # creating a child... and quickly become a mess.
+        return if defined $asset->parent;
+
+        # A crop from this prototype doesn't exist. Let's build one!
+        my $crop_box = _calculate_auto_crop_box({
+            prototype => $prototype,
+            asset     => $asset,
+        });
+
+        # Finally, create the thumbnail.
+        my $result = _create_thumbnail({
+            asset         => $asset,
+            prototype_key => $prototype_key,
+            w             => $crop_box->{w},
+            h             => $crop_box->{h},
+            x             => $crop_box->{x},
+            y             => $crop_box->{y},
+        });
+    }
+}
+
+sub _calculate_auto_crop_box {
+    my ($arg_ref) = @_;
+    my $prototype = $arg_ref->{prototype};
+    my $asset     = $arg_ref->{asset};
+
+    # Some basic variables get reset based upon the crop needs.
+    my $w = 0; # The image width to crop to
+    my $h = 0; # The image height to crop to
+    my $x = 0;
+    my $y = 0;
+
+    my $max_w = $prototype->max_width;
+    my $max_h = $prototype->max_height;
+
+    my $asset_w = $asset->image_width;
+    my $asset_h = $asset->image_height;
+
+    # Is the image bigger than the desired prototype size? If yes, we need
+    # to crop to meet the desired proportions.
+    if ( $asset_w >= $max_w && $asset_h >= $max_h ) {
+        # Create a crop box by defining how the image can be fit into the
+        # prototype box. Calculate a desired width and height to be used in
+        # defining the crop box and testing how the image can be resized.
+        my $desired_w = ($asset_h * $max_w) / $max_h;
+        my $desired_h = ($asset_w * $max_h) / $max_w;
+
+        # The image is taller than needed for the prototype, and the image is
+        # tall enough to be cropped to the desired proportions.
+        if ( $desired_h > $max_h && $desired_h <= $asset_h ) {
+            $w = $asset_w;
+            $h = $desired_h;
+            $x = 0;
+            $y = ($asset_h - $desired_h) / 2; # Center the crop
+        }
+        # Image is not tall enough; can we crop to width?
+        elsif ( $desired_w <= $asset_w ) {
+            my $desired_w = ($asset_h * $max_w) / $max_h;
+            $w = $desired_w;
+            $h = $asset_h;
+            $x = ($asset_w - $desired_w) / 2; # Center the crop
+            $y = 0;
+        }
+        # The image isn't big enough to meet the desired size proportions. Can
+        # this even happen? The above checks should catch an asset that isn't
+        # tall enough to crop or wide enough to crop, and if an image isn't
+        # tall enough *and* wide enough it shouldn't be in the parent `if`
+        # statement (checking asset w/h against prototype w/h), and would go to
+        # the else below... right?
+        else {
+            $w = $asset_w;
+            $h = $asset_h;
+        }
+    }
+    # The image is *not* bigger that the desired prototype size. The image
+    # can't be cropped correctly; just resize to the max width or height,
+    # if necessary.
+    else {
+        $w = $asset_w;
+        $h = $asset_h;
+    }
+
+    # Return the values that define the crop box. With these, the top-left
+    # corner of the box is defined and the width and height of the crop box is
+    # defined.
+    return {
+        w => $w,
+        h => $h,
+        x => $x,
+        y => $y,
+    };
+}
+
+# Create the thumbnail based on the crop box (from the $w, $h, $x, and $y
+# variables) and resize (based on the prototype dimensions).
+sub _create_thumbnail {
+    my ($arg_ref) = @_;
+    my $asset     = $arg_ref->{asset};
+    my $app       = MT->instance;
+    my $plugin    = MT->component('imagecropper');
+
+    my $blog = $app->model('blog')->load( $asset->blog_id );
+
+    my $quality = $plugin->get_config_value(
+        'default_quality',
+        'blog:' . $blog->id
+    );
+    my $text_size = $plugin->get_config_value(
+        'annotate_fontsize',
+        'blog:' . $blog->id
+    );
+
+    my $key      = $arg_ref->{prototype_key};
+    my $w        = $arg_ref->{w};
+    my $h        = $arg_ref->{h};
+    my $x        = $arg_ref->{x};
+    my $y        = $arg_ref->{y};
+    my $type     = $arg_ref->{type} || 'jpg';
+    $quality     = $arg_ref->{quality} || $quality;
+    my $annotate = $arg_ref->{annotate};
+    my $text     = $arg_ref->{text};
+    $text_size   = $arg_ref->{text_size} || $text_size;
+    my $text_loc = $arg_ref->{text_location};
+    my $text_rot = $arg_ref->{text_rotation};
+
+    # Remove any previously-created asset based on this prototype before trying
+    # to create a new one.
+    _remove_old_asset({
+        asset_id => $asset->id,
+        key      => $key,
+        blog_id  => $blog->id,
+    });
+
+    my $prototype;
+    if ( $key =~ /custom_(\d+)/ ) {
+        $prototype = MT->model('thumbnail_prototype')->load($1);
+    }
+    else {
+        $prototype = MT->model('thumbnail_prototype')->load({
+            blog_id  => $blog->id,
+            basename => $key,
+        });
+    }
+    die "Prototype $key not found!" unless $prototype;
+
+    my @cropped_file_parts = crop_filename(
+        $asset,
+        Prototype => $key,
+        Type      => $type,
+    );
+
+    my ( $cache_path, $cache_url );
+    my $archivepath = $blog->archive_path;
+    my $archiveurl  = $blog->archive_url;
+    $cache_path = $cache_url = $asset->_make_cache_path( undef, 1 );
+    $cache_path =~ s!%a!$archivepath!;
+
+    $cache_url =~ s!%a!$archiveurl!;
+    my $cropped_path =
+      File::Spec->catfile( $cache_path, @cropped_file_parts );
+
+    my $cropped_url = caturl( $cache_url, @cropped_file_parts );
+
+    my ( $base, $path, $ext ) =
+      File::Basename::fileparse( File::Spec->catfile(@cropped_file_parts),
+        qr/[A-Za-z0-9]+$/ );
+
+    require MT::Image;
+    my $img = MT::Image->new( Filename => $asset->file_path )
+        or $app->log({
+            blog_id  => $blog->id,
+            category => 'load',
+            class    => 'Image Cropper',
+            level    => $app->model('log')->ERROR(),
+            message  => 'Image Cropper is unable to load the file '
+                . $asset->file_path . ' for asset ID ' . $asset->id . ', '
+                . MT::Image->errstr
+        });
+
+    # Crop the image to the desired proportions.
+    my $data = crop_image(
+        $img,
+        Width   => $w,
+        Height  => $h,
+        X       => $x,
+        Y       => $y,
+        Type    => $type,
+        quality => $quality,
+    );
+    # Resize the cropped image to the desired prototype size.
+    $data = $img->scale(
+        Width  => $prototype->max_width,
+        Height => $prototype->max_height,
+    );
+
+    if ( $annotate && $text ) {
+        my $plugin = MT->component("ImageCropper");
+        my $scope  = "blog:" . $blog->id;
+        my $fam    = $plugin->get_config_value( 'annotate_fontfam', $scope );
+        $data = annotate(
+            $img,
+            text     => $text,
+            family   => $fam,
+            size     => $text_size,
+            location => $text_loc,
+            rotation => $text_rot,
+        );
+    }
+    require MT::FileMgr;
+    my $fmgr = $blog ? $blog->file_mgr : MT::FileMgr->new('Local');
+    unless ($fmgr) {
+        $app->log({
+            blog_id  => $blog->id,
+            category => 'filemanager',
+            class    => 'Image Cropper',
+            level    => $app->model('log')->ERROR(),
+            message  => 'Image Cropper is unable to initialize File Manager.',
+        });
+        return undef;
+    }
+    if ( $cache_path =~ /^%r/ ) {
+        my $site_path = $blog->site_path;
+        $cache_path =~ s/%r/$site_path/;
+    }
+    unless ( $fmgr->can_write($cache_path) ) {
+        $app->log({
+            blog_id  => $blog->id,
+            category => 'filemanager',
+            class    => 'Image Cropper',
+            level    => $app->model('log')->ERROR(),
+            message  => "Image Cropper is unable to write to $cache_path.",
+        });
+        return undef;
+    }
+    my $error = '';
+    if ( !-d $cache_path ) {
+        require MT::FileMgr;
+        unless ( $fmgr->mkpath($cache_path) ) {
+            $app->log({
+                blog_id  => $blog->id,
+                category => 'filemanager',
+                class    => 'Image Cropper',
+                level    => $app->model('log')->ERROR(),
+                message  => 'Image Cropper is unable to make the cache path '
+                    . "$cache_path.",
+            });
+            return undef;
+        }
+    }
+
+    my $bytes = $fmgr->put_data(
+        $data,
+        File::Spec->catfile( $cache_path, @cropped_file_parts ),
+        'upload'
+    )
+        or $error =
+            MT->translate( "Error creating cropped file: [_1]", $fmgr->errstr );
+
+    if ( $cropped_url =~ /^%r/ ) {
+        my $site_url = $blog->site_url;
+        $site_url    =~ s{/?$}{/};
+        $cropped_url =~ s{%r/?}{$site_url};
+    }
+
+    my $asset_cropped = new MT::Asset::Image;
+    $asset_cropped->blog_id( $blog->id );
+    $asset_cropped->url($cropped_url);
+    $asset_cropped->file_path($cropped_path);
+    $asset_cropped->file_name("$base$ext");
+    $asset_cropped->file_ext($ext);
+    $asset_cropped->image_width( $prototype->max_width );
+    $asset_cropped->image_height( $prototype->max_height );
+    my $created_by = $app->can('user') ? $app->user->id : 0;
+    $asset_cropped->created_by( $created_by );
+    $asset_cropped->label(
+        $app->translate(
+            "[_1] ([_2])",
+            $asset->label || $asset->file_name,
+            $prototype->label
+        )
+    );
+    $asset_cropped->parent( $asset->id );
+    $asset_cropped->save or die $asset_cropped->errstr;
+
+    $app->log({
+        blog_id   => $blog->id,
+        category  => 'new',
+        class     => 'asset',
+        level     => $app->model('log')->INFO(),
+        message   => 'Image Cropper created a new child asset (ID '
+            . $asset_cropped->id . ') based on the Thumbnail Prototype &ldquo;'
+            . $prototype->label . '&rdquo; and the parent asset &ldquo;'
+            . $asset->label . '&rdquo; (ID ' . $asset->id . ').',
+    });
+
+    my $map = MT->model('thumbnail_prototype_map')->new;
+    $map->asset_id( $asset->id );
+    $map->prototype_key($key);
+    $map->cropped_asset_id( $asset_cropped->id );
+    $map->cropped_x($x);
+    $map->cropped_y($y);
+    $map->cropped_w($w);
+    $map->cropped_h($h);
+    $map->save or die $map->errstr;
+
+    return {
+        error        => $error,
+        proto_key    => $key,
+        cropped      => caturl(@cropped_file_parts),
+        cropped_path => $cropped_path,
+        cropped_url  => $cropped_url,
+        cropped_size => file_size($asset_cropped),
+    };
+}
+
+# When creating a new thumbnail we want to remove any old asset based on the
+# same prototype before trying to create a new one.
+sub _remove_old_asset {
+    my ($arg_ref) = @_;
+    my $asset_id  = $arg_ref->{asset_id};
+    my $key       = $arg_ref->{key};
+    my $blog_id   = $arg_ref->{blog_id};
+
+    # Look for prototype mappings. Theme-built prototypes are saved as
+    # dirified basenames, but previously they just used double colons to
+    # join values which is messy and causes JS trouble. But, since maps may
+    # exist to these old-style keys, look for any in addition to the new
+    # style.
+    my $old_style_key = $key;
+    $old_style_key =~ s/__/::/;
+
+    my $oldmap = MT->model('thumbnail_prototype_map')->load({
+        asset_id      => $asset_id,
+        prototype_key => [$key, $old_style_key],
+    });
+
+    if ($oldmap) {
+        $oldmap->remove()
+            or MT->log({
+                blog_id  => $blog_id,
+                category => 'delete',
+                class    => 'Image Cropper',
+                level    => MT->model('log')->ERROR(),
+                message  => 'Image Cropper is unable to remove the prototype '
+                    . 'asset map with ID ' . $oldmap->cropped_asset_id . ', '
+                    . $oldmap->errstr,
+            });
+
+        my $oldasset = MT->model('asset')->load( $oldmap->cropped_asset_id );
+        if ($oldasset) {
+            $oldasset->remove()
+                or MT->log({
+                    blog_id  => $blog_id,
+                    category => 'delete',
+                    class    => 'Image Cropper',
+                    level    => MT->model('log')->INFO(),
+                    message  => 'Image Cropper is unable to remove the asset '
+                        . 'ID ' . $oldmap->cropped_asset_id . ', '
+                        . $oldasset->errstr,
+                });
+        }
+    }
 }
 
 1;

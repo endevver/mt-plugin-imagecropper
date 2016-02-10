@@ -11,12 +11,13 @@ use base qw( MT::Object );
 __PACKAGE__->install_properties( {
         column_defs => {
             'id'           => 'integer not null auto_increment',
+            'basename'     => 'string(255)',
             'blog_id'      => 'integer not null',
             'label'        => 'string(100) not null',
-            'default_tags' => 'string(255)',
-            'max_width'    => 'smallint not null',
-            'max_height'   => 'smallint not null',
+            'max_width'    => 'smallint',
+            'max_height'   => 'smallint',
             'compression'  => 'string(30)',
+            'autocrop'     => 'boolean',
         },
         audit   => 1,
         indexes => {
@@ -81,6 +82,17 @@ sub list_properties {
             order   => 400,
             display => 'default',
         },
+        autocrop => {
+            auto    => 1,
+            label   => 'Auto-Crop Enabled?',
+            order   => 500,
+            display => 'default',
+            html    => sub {
+                my $prop = shift;
+                my ( $obj, $app, $opts ) = @_;
+                return $obj->autocrop ? 'Yes' : 'No';
+            }
+        },
         created_by => {
             base  => '__virtual.author_name',
             order => 500,
@@ -112,9 +124,11 @@ sub edit_prototype {
 
     $param->{blog_id}    = $blog->id;
     $param->{id}         = $obj->id;
+    $param->{basename}   = $obj->basename;
     $param->{label}      = $obj->label;
     $param->{max_width}  = $obj->max_width;
     $param->{max_height} = $obj->max_height;
+    $param->{autocrop}   = $obj->autocrop;
     $param->{screen_id}  = 'edit-prototype';
     return $app->load_tmpl( 'dialog/edit.tmpl', $param );
 }
@@ -124,10 +138,14 @@ sub save_prototype {
     my $param;
     my $q = $app->can('query') ? $app->query : $app->param;
     my $obj = MT->model('thumbnail_prototype')->load( $q->param('id') )
-      || MT->model('thumbnail_prototype')->new;
+        || MT->model('thumbnail_prototype')->new;
 
     $obj->$_( $q->param($_) )
-      foreach (qw(blog_id max_width max_height label default_tags));
+        foreach (qw(blog_id max_width max_height label basename));
+
+    # Check or uncheck the Enable Autocrop checkbox.
+    my $autocrop = $q->param('autocrop') ? 1 : 0;
+    $obj->autocrop( $autocrop );
 
     $obj->save or return $app->error( $obj->errstr );
 
@@ -149,6 +167,6 @@ sub del_prototype {
     $app->call_return;
 }
 
-
 1;
+
 __END__

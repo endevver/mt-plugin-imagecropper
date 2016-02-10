@@ -159,182 +159,188 @@
     </div>
 
 
-<h3 id="step1">1. Select a Thumbnail Prototype:</h3>
+<div style="clear: both;">
+    <h3 id="step1">1. Select a Thumbnail Prototype:</h3>
 
-<div id="selector" class="pkg">
-<a class="prev"></a>
-<div class="scrollable">
-<ul id="prototypes" class="pkg">
-<mt:loop name="prototype_loop">
-  <li id="proto-<mt:var name="proto_key">" class="<mt:unless name="thumbnail_url">nothumb</mt:unless>">
-    <div class="proto_preview">
-      <mt:if name="thumbnail_url"><img src="<mt:var name="thumbnail_url">" <mt:unless name="smaller_vp"><mt:if name="is_tall">height="135"<mt:else>width="175"</mt:if></mt:unless> /><mt:else><span>?</span></mt:if>
+    <div id="selector" class="pkg">
+    <a class="prev"></a>
+    <div class="scrollable">
+    <ul id="prototypes" class="pkg">
+    <mt:loop name="prototype_loop">
+      <li id="proto-<mt:var name="proto_key">" class="<mt:unless name="thumbnail_url">nothumb</mt:unless>">
+        <div class="proto_preview">
+          <mt:if name="thumbnail_url"><img src="<mt:var name="thumbnail_url">" <mt:unless name="smaller_vp"><mt:if name="is_tall">height="135"<mt:else>width="175"</mt:if></mt:unless> /><mt:else><span>?</span></mt:if>
+        </div>
+        <div class="proto_action"><a href="javascript:void(0);"><img src="<mt:Var name="static_uri">plugins/ImageCropper/css/delete.gif" /></a></div>
+        <div class="proto_progress"><img src="<mt:Var name="static_uri">plugins/ImageCropper/css/indicator.gif" width="16" height="16" /></div>
+        <div class="proto_size"><mt:var name="cropped_size" default=""></div>
+        <div class="proto_info">
+          <mt:var name="proto_label"><br />
+          (<mt:var name="max_width"> x <mt:var name="max_height">)
+        </div>
+      </li>
+    </mt:loop>
+    </ul>
     </div>
-    <div class="proto_action"><a href="javascript:void(0);"><img src="<mt:Var name="static_uri">plugins/ImageCropper/css/delete.gif" /></a></div>
-    <div class="proto_progress"><img src="<mt:Var name="static_uri">plugins/ImageCropper/css/indicator.gif" width="16" height="16" /></div>
-    <div class="proto_size"><mt:var name="cropped_size" default=""></div>
-    <div class="proto_info">
-      <mt:var name="proto_label"><br />
-      (<mt:var name="max_width"> x <mt:var name="max_height">)
+    <a class="next"></a>
     </div>
-  </li>
-</mt:loop>
-</ul>
 </div>
-<a class="next"></a>
+
+<div style="clear: both;">
+    <h3 id="step2">2. Select your crop area:</h3>
+
+    <div id="asset" style="width: <mt:var name="box_width">; height: <mt:var name="box_height">"><mt:section trim="1">
+    <mt:setvarblock name="width"><mt:AssetProperty property="image_width"></mt:setvarblock>
+    <mt:if name="width" lt="900">
+    <img src="<mt:AssetURL>" />
+    <mt:else>
+    <img src="<mt:AssetThumbnailURL width="900">" />
+    </mt:if>
+    </mt:section></div>
 </div>
 
-<h3 id="step2">2. Select your crop area:</h3>
+<div style="clear: both;">
+    <h3 id="step3">3. Select additional crop options:</h3>
 
-<div id="asset" style="width: <mt:var name="box_width">; height: <mt:var name="box_height">"><mt:section trim="1">
-<mt:setvarblock name="width"><mt:AssetProperty property="image_width"></mt:setvarblock>
-<mt:if name="width" lt="900">
-<img src="<mt:AssetURL>" />
-<mt:else>
-<img src="<mt:AssetThumbnailURL width="900">" />
-</mt:if>
-</mt:section></div>
-
-<h3 id="step3">3. Select additional crop options:</h3>
-
-<div class="step">
-    <mtapp:setting
-        id="include_annotation"
-        label_class="top-label"
-        label="<__trans phrase="Include Text Annotation?">"
-        show_label="0"
-        show_hint="0">
-            <input type="checkbox"
-                name="include_annotation"
-                id="include_annotation"
-                value="1"
-                onclick="toggleAnnotation(this);" />
-            <label for="include_annotation">Include Text Annotation?</label>
-    </mtapp:setting>
-
-    <div id="annotation-settings" class="pkg settings-group">
+    <div class="step">
         <mtapp:setting
-            id="annotation"
+            id="include_annotation"
             label_class="top-label"
-            label="<__trans phrase="Text Annotation">"
+            label="<__trans phrase="Include Text Annotation?">"
+            show_label="0"
             show_hint="0">
-            <input type="text"
-                name="annotation"
-                value="<mt:DefaultCroppedImageText encode_html="1">"
-                size="30" />
+                <input type="checkbox"
+                    name="include_annotation"
+                    id="include_annotation"
+                    value="1"
+                    onclick="toggleAnnotation(this);" />
+                <label for="include_annotation">Include Text Annotation?</label>
         </mtapp:setting>
-        <mtapp:setting
-            id="annotation_size"
-            label_class="top-label"
-            label="Font Size"
-            show_hint="0">
-            <input type="text"
-                name="annotation_size"
-                value="<mt:Var name="annotation_size">"
-                size="5" />
-        </mtapp:setting>
-        <mtapp:setting
-            id="annotation_loc"
-            label_class="top-label"
-            label="<__trans phrase="Annotation Location">"
-            show_hint="0">
-               <select name="annotation_loc">
-                 <option value="NorthWest">Top Left</option>
-                 <option value="NorthEast">Top Right</option>
-                 <option value="SouthWest">Bottom Left</option>
-                 <option value="SouthEast" selected>Bottom Right</option>
-               </select>
-        </mtapp:setting>
-        <mtapp:setting
-            id="annotation_rot"
-            label_class="top-label"
-            label="<__trans phrase="Annotation Rotation">"
-            show_hint="0">
-               <select name="annotation_rot">
-                 <option>Horizontal</option>
-                 <option>Vertical</option>
-               </select>
-        </mtapp:setting>
-    </div>
 
-    <div id="compress-settings" class="pkg settings-group">
-        <mtapp:setting
-            id="type"
-            label="<__trans phrase="Thumbnail Image Type">"
-            hint="non-functional right now"
-            show_hint="1"
-            class="hidden">
-                <select name="type">
-                    <option value="jpg" selected>JPEG</option>
-                    <option value="png">PNG</option>
-                    <option value="gif">GIF</option>
+        <div id="annotation-settings" class="pkg settings-group">
+            <mtapp:setting
+                id="annotation"
+                label_class="top-label"
+                label="<__trans phrase="Text Annotation">"
+                show_hint="0">
+                <input type="text"
+                    name="annotation"
+                    value="<mt:DefaultCroppedImageText encode_html="1">"
+                    size="30" />
+            </mtapp:setting>
+            <mtapp:setting
+                id="annotation_size"
+                label_class="top-label"
+                label="Font Size"
+                show_hint="0">
+                <input type="text"
+                    name="annotation_size"
+                    value="<mt:Var name="annotation_size">"
+                    size="5" />
+            </mtapp:setting>
+            <mtapp:setting
+                id="annotation_loc"
+                label_class="top-label"
+                label="<__trans phrase="Annotation Location">"
+                show_hint="0">
+                   <select name="annotation_loc">
+                     <option value="NorthWest">Top Left</option>
+                     <option value="NorthEast">Top Right</option>
+                     <option value="SouthWest">Bottom Left</option>
+                     <option value="SouthEast" selected>Bottom Right</option>
+                   </select>
+            </mtapp:setting>
+            <mtapp:setting
+                id="annotation_rot"
+                label_class="top-label"
+                label="<__trans phrase="Annotation Rotation">"
+                show_hint="0">
+                   <select name="annotation_rot">
+                     <option>Horizontal</option>
+                     <option>Vertical</option>
+                   </select>
+            </mtapp:setting>
+        </div>
+
+        <div id="compress-settings" class="pkg settings-group">
+            <mtapp:setting
+                id="type"
+                label="<__trans phrase="Thumbnail Image Type">"
+                hint="non-functional right now"
+                show_hint="1"
+                class="hidden">
+                    <select name="type">
+                        <option value="jpg" selected>JPEG</option>
+                        <option value="png">PNG</option>
+                        <option value="gif">GIF</option>
+                    </select>
+            </mtapp:setting>
+
+            <mtapp:setting
+                id="quality"
+                label="<__trans phrase="Default Quality">"
+                show_hint="1"
+                label_class="top_label">
+                <select name="quality">
+                    <option value="1"
+                        <mt:If name="default_quality" eq="1">selected</mt:If>>
+                        1 (Lowest)
+                    </option>
+                    <option value="10"
+                        <mt:If name="default_quality" eq="10">selected</mt:If>>
+                        10
+                    </option>
+                    <option value="20"
+                        <mt:If name="default_quality" eq="20">selected</mt:If>>
+                        20
+                    </option>
+                    <option value="30"
+                        <mt:If name="default_quality" eq="30">selected</mt:If>>
+                        30
+                    </option>
+                    <option value="40"
+                        <mt:If name="default_quality" eq="40">selected</mt:If>>
+                        40
+                    </option>
+                    <option value="50"
+                        <mt:If name="default_quality" eq="50">selected</mt:If>>
+                        50
+                    </option>
+                    <option value="60"
+                        <mt:If name="default_quality" eq="60">selected</mt:If>>
+                        60
+                    </option>
+                    <option value="70"
+                        <mt:If name="default_quality" eq="70">selected</mt:If>>
+                        70
+                    </option>
+                    <option value="80"
+                        <mt:If name="default_quality" eq="80">selected</mt:If>>
+                        80
+                    </option>
+                    <option value="90"
+                        <mt:If name="default_quality" eq="90">selected</mt:If>>
+                        90
+                    </option>
+                    <option value="100"
+                        <mt:If name="default_quality" eq="100">selected</mt:If>>
+                        100 (Highest)
+                    </option>
                 </select>
-        </mtapp:setting>
-
-        <mtapp:setting
-            id="quality"
-            label="<__trans phrase="Default Quality">"
-            show_hint="1"
-            label_class="top_label">
-            <select name="quality">
-                <option value="1"
-                    <mt:If name="default_quality" eq="1">selected</mt:If>>
-                    1 (Lowest)
-                </option>
-                <option value="10"
-                    <mt:If name="default_quality" eq="10">selected</mt:If>>
-                    10
-                </option>
-                <option value="20"
-                    <mt:If name="default_quality" eq="20">selected</mt:If>>
-                    20
-                </option>
-                <option value="30"
-                    <mt:If name="default_quality" eq="30">selected</mt:If>>
-                    30
-                </option>
-                <option value="40"
-                    <mt:If name="default_quality" eq="40">selected</mt:If>>
-                    40
-                </option>
-                <option value="50"
-                    <mt:If name="default_quality" eq="50">selected</mt:If>>
-                    50
-                </option>
-                <option value="60"
-                    <mt:If name="default_quality" eq="60">selected</mt:If>>
-                    60
-                </option>
-                <option value="70"
-                    <mt:If name="default_quality" eq="70">selected</mt:If>>
-                    70
-                </option>
-                <option value="80"
-                    <mt:If name="default_quality" eq="80">selected</mt:If>>
-                    80
-                </option>
-                <option value="90"
-                    <mt:If name="default_quality" eq="90">selected</mt:If>>
-                    90
-                </option>
-                <option value="100"
-                    <mt:If name="default_quality" eq="100">selected</mt:If>>
-                    100 (Highest)
-                </option>
-            </select>
-        </mtapp:setting>
+            </mtapp:setting>
+        </div>
     </div>
-</div>
 
-<div class="actions-bar">
-  <div class="actions-bar-inner pkg actions">
-    <button
-        type="button"
-        class="primary action button primary-button"
-        accesskey="s"
-        title="Crop"
-        onclick="return cropAsset();">Crop</button>
-  </div>
+    <div class="actions-bar">
+      <div class="actions-bar-inner pkg actions">
+        <button
+            type="button"
+            class="primary action button primary-button"
+            accesskey="s"
+            title="Crop"
+            onclick="return cropAsset();">Crop</button>
+      </div>
+    </div>
 </div>
 </mt:unless>
 
