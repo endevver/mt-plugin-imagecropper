@@ -857,4 +857,36 @@ sub _remove_old_asset {
     }
 }
 
+# Automatically create thumbnails on image upload. (Well, sort of: create
+# worker jobs to create thumbnails. When the worker runs it will create the
+# thumbnail, if necessary.)
+sub upload_file_callback {
+    my $cb = shift;
+    my (%params) = @_;
+    my $asset = $params{'Asset'};
+
+    # This must be an image for us to build thunbails.
+    return 1 unless $asset->class =~ m/(image|photo)/;
+
+    # Are there any Prototypes with auto crop enabled?
+    my $prototypes = MT->model('thumbnail_prototype')->exist({
+        blog_id  => $asset->blog_id,
+        autocrop => 1,
+    });
+
+    if ( $prototypes ) {
+        require TheSchwartz::Job;
+        require MT::TheSchwartz;
+        my $job = TheSchwartz::Job->new();
+        $job->funcname(  'ImageCropper::Worker::AutoCrop' );
+        $job->coalesce(  $asset->id                       );
+        $job->uniqkey(   $asset->id                       );
+        $job->priority(  1                                );
+        $job->run_after( time()                           );
+        MT::TheSchwartz->insert( $job );
+    }
+}
+
 1;
+
+__END__

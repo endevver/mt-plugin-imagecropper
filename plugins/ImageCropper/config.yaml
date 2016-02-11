@@ -11,6 +11,13 @@ blog_config_template: config.tmpl
 callbacks:
     MT::App::CMS::init_app: $ImageCropper::ImageCropper::Plugin::init_app
     MT::Asset::Image::post_remove: $ImageCropper::ImageCropper::Plugin::post_remove_asset
+    cms_upload_file.image: $ImageCropper::ImageCropper::Plugin::upload_file_callback
+    api_upload_file.image: $ImageCropper::ImageCropper::Plugin::upload_file_callback
+
+task_workers:
+    autocrop:
+        label: Image Cropper auto-crop uploaded images
+        class: ImageCropper::Worker::AutoCrop
 
 upgrade_functions:
     cropper_key_change:
