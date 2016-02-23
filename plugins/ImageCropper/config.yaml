@@ -14,6 +14,7 @@ callbacks:
     MT::Asset::Image::post_remove: $ImageCropper::ImageCropper::Plugin::post_remove_asset
     cms_upload_file.image: $ImageCropper::ImageCropper::Plugin::upload_file_callback
     api_upload_file.image: $ImageCropper::ImageCropper::Plugin::upload_file_callback
+    template_param.async_asset_list: $ImageCropper::ImageCropper::Plugin::template_param_async_asset_list_callback
 
 task_workers:
     autocrop:
@@ -43,6 +44,9 @@ settings:
     annotate_fontsize:
         scope: blog
         default: 10
+    hide_child_assets:
+        scope: blog
+        default: 0
 
 config_settings:
     DefaultCroppedImageText:

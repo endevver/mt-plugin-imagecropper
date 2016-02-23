@@ -74,3 +74,17 @@
         class="full full-width"
         value="<mt:Var name="annotate_fontsize" escape="html">">
 </mtapp:Setting>
+
+<mtapp:setting
+    id="hide_child_assets"
+    label="Hide Child Assets"
+    hint="Especially when using many prototypes the number of child assets can confusingly outweigh the number of parent assets. Clean up the Asset Insert dialog by simply hiding the parent assets."
+    show_hint="1">
+        <input
+            id="hide_child_assets"
+            type="checkbox"
+            name="hide_child_assets"
+            class="cb"
+            <mt:If name="hide_child_assets">checked</mt:If> />
+        <label for="hide_child_assets">Hide child assets in the Asset Insert dialog.</label>
+</mtapp:setting>

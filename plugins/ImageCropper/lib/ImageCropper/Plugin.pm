@@ -926,6 +926,37 @@ sub upload_file_callback {
     }
 }
 
+# Update the asset picker to hide any child assets, cleaning up the picker
+# screen.
+sub template_param_async_asset_list_callback {
+    my ( $cb, $app, $param, $tmpl ) = @_;
+
+    # Give up if the "hide" option wasn't selected; user wants to see all
+    # assets.
+    my $plugin = $app->component('ImageCropper');
+    return unless $plugin->get_config_value(
+        'hide_child_assets',
+        'blog:' . $app->blog->id
+    );
+
+    my $i = 0;
+    while ( $param->{object_loop}[$i] ) {
+        next unless $param->{object_loop}[$i];
+
+        # Get the asset.
+        my $asset_id = $param->{object_loop}[$i]->{id};
+        my $asset = $app->model('asset')->load( $asset_id );
+
+        # If this asset has a parent, it should be hidden.
+        if ($asset->parent) {
+            splice $param->{object_loop}, $i, 1;
+        }
+
+        # Increment to get the next item in the options_loop array.
+        $i++;
+    }
+}
+
 1;
 
 __END__
