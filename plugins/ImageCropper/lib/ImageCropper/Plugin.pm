@@ -449,7 +449,8 @@ sub list_action_auto_crop {
     $app->call_return;
 }
 
-# Auto crop expects an asset and creates any thumbnails that need to be created.
+# Auto crop expects an asset ID and creates any thumbnails that need to be
+# created based on all prototypes in the blog that are marked for autocrop.
 sub _auto_crop {
     my ($asset_id) = @_;
     my $app      = MT->instance;
@@ -471,7 +472,7 @@ sub _auto_crop {
     });
 
     foreach my $prototype (@prototypes) {
-        my $prototype_key = defined $prototype->basename
+        my $prototype_key = $prototype->basename ne ''
             ? $prototype->basename
             : 'custom_' . $prototype->id;
 
@@ -489,12 +490,13 @@ sub _auto_crop {
             asset_id      => $asset->id,
             prototype_key => [$prototype_key, $old_style_key],
         });
-        return if $map && $app->model('asset')->exist( $map->cropped_asset_id );
+
+        next if $map && $app->model('asset')->exist( $map->cropped_asset_id );
 
         # Is this a cropped child asset? We don't want to create crops of child
         # assets. That could get into a rabbit hole of a child creating a child
         # creating a child... and quickly become a mess.
-        return if defined $asset->parent;
+        next if defined $asset->parent;
 
         # A crop from this prototype doesn't exist. Let's build one!
         my $crop_box = _calculate_auto_crop_box({
@@ -531,9 +533,15 @@ sub _calculate_auto_crop_box {
     my $asset_w = $asset->image_width;
     my $asset_h = $asset->image_height;
 
+    # The prototype height is defined, and the width can be variable.
+    # Or, the prototype width is defined, and the height can be variable.
+    if ( $max_w == 0 || $max_h == 0 ) {
+        $w = $asset_w;
+        $h = $asset_h;
+    }
     # Is the image bigger than the desired prototype size? If yes, we need
     # to crop to meet the desired proportions.
-    if ( $asset_w >= $max_w && $asset_h >= $max_h ) {
+    elsif ( $asset_w >= $max_w && $asset_h >= $max_h ) {
         # Create a crop box by defining how the image can be fit into the
         # prototype box. Calculate a desired width and height to be used in
         # defining the crop box and testing how the image can be resized.
@@ -682,11 +690,23 @@ sub _create_thumbnail {
         Type    => $type,
         quality => $quality,
     );
-    # Resize the cropped image to the desired prototype size.
-    $data = $img->scale(
-        Width  => $prototype->max_width,
-        Height => $prototype->max_height,
-    );
+
+    # Resize the cropped image to the desired prototype size. Check for a max
+    # width of `0` to differentiate prototypes that should be variable width
+    # (or, for a max height of `0`, variable height) and scale appropriately.
+    # We don't actually *need* to supply both Width and Height values.
+    if ($prototype->max_width == 0) {
+        $data = $img->scale(
+            # Width  => $prototype->max_width,
+            Height => $prototype->max_height,
+        );
+    }
+    else {
+        $data = $img->scale(
+            Width  => $prototype->max_width,
+            # Height => $prototype->max_height,
+        );
+    }
 
     if ( $annotate && $text ) {
         my $plugin = MT->component("ImageCropper");

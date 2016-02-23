@@ -76,8 +76,18 @@
 
     function initCrop(max_w,max_h,x,y,w,h) {
       if (jcrop) { jcrop.destroy(); }
+
+      // The aspect ratio determines the size of the crop region and, if the
+      // max height and width are not `0`, it forces the desired apsect ratio
+      // to be maintained. Setting the aspect ratio to `0` does not enforce a
+      // ratio, which is what is needed for a variable-height prototype's crop.
+      var aspect_ratio = 0;
+      if (max_w != 0 && max_h != 0 ) {
+          aspect_ratio = ( max_w / max_h );
+      }
+
       jcrop = jQuery.Jcrop('#asset img',{
-        aspectRatio: ( max_w / max_h ), /* the size of the crop region */
+        aspectRatio: aspect_ratio,
         minSize    : [ max_w, max_h ],
         boxWidth   : <mt:var name="box_width">,
         boxHeight  : <mt:var name="box_height">,

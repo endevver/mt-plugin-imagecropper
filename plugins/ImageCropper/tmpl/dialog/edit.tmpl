@@ -41,7 +41,7 @@
     id="max_width"
     label_class="top-label"
     label="<__trans phrase="Max Width">"
-    hint="Enter in the max width of the thumbnail."
+    hint="Enter the maximum width of the thumbnail. Enter &ldquo;0&rdquo; to create a variable-width thumbnail (that is, height-constrained)."
     show_hint="1">
       <input
           id="max_width"
@@ -55,7 +55,7 @@
     id="max_height"
     label_class="top-label"
     label="<__trans phrase="Max Height">"
-    hint="Enter in the max height of the thumbnail."
+    hint="Enter the maximum height of the thumbnail. Enter &ldquo;0&rdquo; to create a variable-height thumbnail (that is, width-constrained)."
     show_hint="1">
       <input
           id="max_height"
@@ -67,14 +67,16 @@
 
 <mtapp:setting
     id="allow_autocrop"
-    label_class="top-label">
+    label_class="top-label"
+    hint="Thumbnails can be created automatically during upload for all Prototypes that have this feature enabled. After uploading, a Worker job is created that will automatically generate a thumbnail crop from this Prototype."
+    show_hint="1">
         <input
             id="autocrop"
             type="checkbox"
             name="autocrop"
             class="cb"
             <mt:If name="autocrop">checked</mt:If> />
-        <label for="autocrop">Enable Auto-Crop for this Prototype?</label>
+        <label for="autocrop">Enable automatic thumbnail creation for this Prototype?</label>
 </mtapp:setting>
 
 <div class="actions-bar">
