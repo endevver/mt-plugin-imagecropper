@@ -79,13 +79,13 @@ applications:
 page_actions:
     asset:
         gen_thumbnails:
-            label: 'Generate Thumbnails'
+            label: 'Manually Generate Thumbnails'
             order: 100
             mode:  manage_thumbnails
             condition: $ImageCropper::ImageCropper::Plugin::page_action_condition
         auto_crop:
             label: 'Automatically Generate Thumbnails'
-            order: 200
+            order: 101
             code:  $ImageCropper::ImageCropper::Plugin::page_action_auto_crop
             condition: $ImageCropper::ImageCropper::Plugin::page_action_condition
 

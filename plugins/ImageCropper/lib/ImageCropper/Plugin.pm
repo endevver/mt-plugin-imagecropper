@@ -227,9 +227,19 @@ sub gen_thumbnails_start {
     my ($param) = @_ || {};
     $app->validate_magic or return;
 
+    # We want to work with the parent asset only. Is this the parent? If not,
+    # find it.
     my $id  = $app->{query}->param('id');
-    my $obj = MT->model('asset')->load($id)
-      or return $app->error('Could not load asset.');
+    my $obj = $app->model('asset')->load( $id)
+        or return $app->error('Could not load asset.');
+
+    if ( defined $obj->parent ) {
+        # We loaded a child asset above; we want the parent.
+        $obj = $app->model('asset')->load({
+            id => $obj->parent,
+        })
+            or return $app->error('Could not load parent asset.');
+    }
 
     my ( $bw, $bh ) = _box_dim($obj);
 
@@ -455,11 +465,20 @@ sub _auto_crop {
     my ($asset_id) = @_;
     my $app      = MT->instance;
 
+    # We want to work with the parent asset only. Is this the parent? If not,
+    # find it.
     my $asset = $app->model('asset')->load({
         id    => $asset_id,
         class => ['image', 'photo'],
-    })
-        or return;
+    });
+
+    if ( defined $asset->parent ) {
+        # We loaded a child asset above; we want the parent.
+        $asset = $app->model('asset')->load({
+            id => $asset->parent,
+        })
+            or return $app->error('Could not load parent asset.');
+    }
 
     # Create any theme-based prototypes that might be needed in this blog.
     create_ts_prototypes($app, $asset->blog_id);
