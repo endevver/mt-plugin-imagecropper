@@ -184,41 +184,71 @@ sub load_ts_prototype {
 # Create prototypes from template set/theme definitions. This is run when
 # visiting the Manually Generate Thumbnails screen and when choosing to
 # auto-crop images.
-sub create_ts_prototypes {
-    my $app  = shift;
-    my ($blog_id) = @_;
-    my $blog = $app->model('blog')->load( $blog_id );
+sub import_ts_prototypes {
+    my $app  = MT->instance;
+    my $blog = $app->blog;
 
-    my @protos;
-    if ( $blog->template_set ) {
-        my $ts = $blog->template_set;
-        my $ps = $app->registry('template_sets')->{$ts}->{thumbnail_prototypes};
-        foreach ( keys %$ps ) {
-            my $p   = $ps->{$_};
-            my $key = dirify( $ts . '__' . $_ );
+    return unless $blog->template_set;
 
-            # If the required values for this prototype are missing, give up.
-            next unless $p->{label} && $p->{max_width} && $p->{max_height};
+    my $ts = $blog->template_set;
+    my $ps = $app->registry('template_sets')->{$ts}->{thumbnail_prototypes};
+    my $imported = '';
+    foreach ( keys %$ps ) {
+        my $p   = $ps->{$_};
+        my $key = dirify( $ts . '__' . $_ );
 
-            # Save this theme-based prototype for future use.
-            unless (
-                $app->model('thumbnail_prototype')->exist({
-                    blog_id  => $blog->id,
-                    basename => $key,
-                })
-            ) {
-                my $prototype = $app->model('thumbnail_prototype')->new();
-                $prototype->blog_id(    $blog->id           );
-                $prototype->label(      &{ $p->{label} }    );
-                $prototype->basename(   $key                );
-                $prototype->max_width(  $p->{max_width}     );
-                $prototype->max_height( $p->{max_height}    );
-                $prototype->autocrop(   $p->{autocrop} || 1 );
+        # If the required values for this prototype are missing, give up.
+        next unless $p->{label} && ($p->{max_width} || $p->{max_height});
 
-                $prototype->save or die $prototype->errstr;
-            }
+        # Save this theme-based prototype for future use.
+        unless (
+            $app->model('thumbnail_prototype')->exist({
+                blog_id  => $blog->id,
+                basename => $key,
+            })
+        ) {
+            my $prototype = $app->model('thumbnail_prototype')->new();
+            $prototype->blog_id(    $blog->id        );
+            $prototype->label(      &{ $p->{label} } );
+            $prototype->basename(   $key             );
+            $prototype->max_width(  $p->{max_width}  );
+            $prototype->max_height( $p->{max_height} );
+            $prototype->autocrop(   $p->{autocrop}   );
+
+            $prototype->save or die $prototype->errstr;
+
+            $app->log({
+                blog_id  => $blog->id,
+                category => 'import',
+                class    => 'Image Cropper',
+                level    => $app->model('log')->INFO(),
+                message  => 'Image Cropper has imported the thumbnail '
+                    . 'prototype &ldquo;' . &{ $p->{label} }
+                    . '&rdquo; from the theme &ldquo;' . $ts . '.&rdquo;'
+            });
+
+            $imported = '&prototypes_imported=1';
         }
     }
+
+    $app->redirect(
+        $app->{cfg}->CGIPath . $app->{cfg}->AdminScript
+        . "?__mode=list&_type=thumbnail_prototype&blog_id=" . $blog->id
+        . $imported
+    );
+}
+
+# If this blog uses a theme and if the theme has prototypes defined, show the
+# link to provide the opportunity to import them.
+sub import_prototypes_condition {
+    my ($app) = MT->instance;
+    my $q = $app->can('query') ? $app->query : $app->param;
+
+    return 0 unless $app->blog && $app->blog->id;
+
+    my $ts = $app->blog->template_set;
+    return 1 if $ts
+        && $app->registry('template_sets')->{$ts}->{thumbnail_prototypes};
 }
 
 # The manuall generate thumbnails screen.
@@ -242,9 +272,6 @@ sub gen_thumbnails_start {
     }
 
     my ( $bw, $bh ) = _box_dim($obj);
-
-    # Create any theme-based prototypes that might be needed in this blog.
-    create_ts_prototypes($app, $app->blog->id );
 
     my @protos;
     my @custom = $app->model('thumbnail_prototype')->load(
@@ -479,9 +506,6 @@ sub _auto_crop {
         })
             or return $app->error('Could not load parent asset.');
     }
-
-    # Create any theme-based prototypes that might be needed in this blog.
-    create_ts_prototypes($app, $asset->blog_id);
 
     # Load the necessary prototypes. Some prototypes may have the auto-crop
     # option disabled.

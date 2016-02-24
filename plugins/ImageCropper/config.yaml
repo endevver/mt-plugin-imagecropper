@@ -79,6 +79,7 @@ applications:
             manage_thumbnails: $ImageCropper::ImageCropper::Plugin::gen_thumbnails_start
             imagecropper_crop: $ImageCropper::ImageCropper::Plugin::crop
             imagecropper_delete_crop: $ImageCropper::ImageCropper::Plugin::delete_crop
+            import_ts_prototypes: $ImageCropper::ImageCropper::Plugin::import_ts_prototypes
 
 page_actions:
     asset:
@@ -123,4 +124,9 @@ content_actions:
             dialog: 1
             mode: edit_prototype
             class: 'icon-create'
-
+        import:
+            label: 'Import thumbnail prototypes from theme'
+            order: 200
+            mode: import_ts_prototypes
+            class: 'icon-create'
+            condition: $ImageCropper::ImageCropper::Plugin::import_prototypes_condition

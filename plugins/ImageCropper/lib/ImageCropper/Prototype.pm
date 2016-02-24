@@ -165,11 +165,11 @@ sub del_prototype {
 
         $app->log({
             author_id => $app->user->id,
-            blog_id   => $blog->id,
+            blog_id   => $app->blog->id,
             category  => 'delete',
             class     => 'Image Cropper',
             level     => $app->model('log')->INFO(),
-            message   => 'The thumbnail prototype &ldquo;' . $p->label} .
+            message   => 'The thumbnail prototype &ldquo;' . $p->label .
                 '&rdquo; has been deleted.'
         });
     }
