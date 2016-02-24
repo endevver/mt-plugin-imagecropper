@@ -184,15 +184,57 @@ sub load_ts_prototype {
 # Create prototypes from template set/theme definitions. This is run when
 # visiting the Manually Generate Thumbnails screen and when choosing to
 # auto-crop images.
-sub import_ts_prototypes {
+sub content_action_import_ts_prototypes {
     my $app  = MT->instance;
+    my $q    = $app->can('query') ? $app->query : $app->param;
     my $blog = $app->blog;
+
+    _import_ts_prototypes( $blog );
+
+    $app->redirect(
+        $app->{cfg}->CGIPath . $app->{cfg}->AdminScript
+        . "?__mode=list&_type=thumbnail_prototype&blog_id=" . $blog->id
+    );
+}
+
+# If this blog uses a theme and if the theme has prototypes defined, show the
+# link to provide the opportunity to import them.
+sub import_prototypes_condition {
+    my ($app) = MT->instance;
+    my $q = $app->can('query') ? $app->query : $app->param;
+
+    return 0 unless $app->blog && $app->blog->id;
+
+    my $ts = $app->blog->template_set;
+    return 1 if $ts
+        && $app->registry('template_sets')->{$ts}->{thumbnail_prototypes};
+}
+
+# The list action on the Manage Blogs screen makes it easy to import quickly.
+sub list_action_import_ts_prototypes {
+    my ($app) = @_;
+    $app->validate_magic or return;
+    my $q = $app->can('query') ? $app->query : $app->param;
+    my @blog_ids = $q->param('id');
+
+    for my $blog_id (@blog_ids) {
+        my $blog = $app->model('blog')->load( $blog_id )
+            or next;
+        _import_ts_prototypes( $blog );
+    }
+
+    $app->call_return;
+}
+
+# Import any prototypes associated with this blog and theme.
+sub _import_ts_prototypes {
+    my ($blog) = @_;
+    my $app    = MT->instance;
 
     return unless $blog->template_set;
 
     my $ts = $blog->template_set;
     my $ps = $app->registry('template_sets')->{$ts}->{thumbnail_prototypes};
-    my $imported = '';
     foreach ( keys %$ps ) {
         my $p   = $ps->{$_};
         my $key = dirify( $ts . '__' . $_ );
@@ -226,29 +268,8 @@ sub import_ts_prototypes {
                     . 'prototype &ldquo;' . &{ $p->{label} }
                     . '&rdquo; from the theme &ldquo;' . $ts . '.&rdquo;'
             });
-
-            $imported = '&prototypes_imported=1';
         }
     }
-
-    $app->redirect(
-        $app->{cfg}->CGIPath . $app->{cfg}->AdminScript
-        . "?__mode=list&_type=thumbnail_prototype&blog_id=" . $blog->id
-        . $imported
-    );
-}
-
-# If this blog uses a theme and if the theme has prototypes defined, show the
-# link to provide the opportunity to import them.
-sub import_prototypes_condition {
-    my ($app) = MT->instance;
-    my $q = $app->can('query') ? $app->query : $app->param;
-
-    return 0 unless $app->blog && $app->blog->id;
-
-    my $ts = $app->blog->template_set;
-    return 1 if $ts
-        && $app->registry('template_sets')->{$ts}->{thumbnail_prototypes};
 }
 
 # The manuall generate thumbnails screen.
