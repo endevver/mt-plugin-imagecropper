@@ -226,6 +226,12 @@ sub list_action_import_ts_prototypes {
     $app->call_return;
 }
 
+# When a theme is re-applied, import any available prototypes.
+sub post_apply_theme_callback {
+    my ($cb, $theme, $blog) = @_;
+    _import_ts_prototypes( $blog );
+}
+
 # Import any prototypes associated with this blog and theme.
 sub _import_ts_prototypes {
     my ($blog) = @_;

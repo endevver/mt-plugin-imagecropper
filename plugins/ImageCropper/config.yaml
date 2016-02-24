@@ -15,6 +15,7 @@ callbacks:
     cms_upload_file.image: $ImageCropper::ImageCropper::Plugin::upload_file_callback
     api_upload_file.image: $ImageCropper::ImageCropper::Plugin::upload_file_callback
     template_param.async_asset_list: $ImageCropper::ImageCropper::Plugin::template_param_async_asset_list_callback
+    post_apply_theme: $ImageCropper::ImageCropper::Plugin::post_apply_theme_callback
 
 task_workers:
     autocrop:
