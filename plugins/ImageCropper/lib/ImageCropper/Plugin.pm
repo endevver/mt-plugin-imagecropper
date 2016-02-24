@@ -887,7 +887,7 @@ sub _remove_old_asset {
                     blog_id  => $blog_id,
                     category => 'delete',
                     class    => 'Image Cropper',
-                    level    => MT->model('log')->INFO(),
+                    level    => MT->model('log')->ERROR(),
                     message  => 'Image Cropper is unable to remove the asset '
                         . 'ID ' . $oldmap->cropped_asset_id . ', '
                         . $oldasset->errstr,

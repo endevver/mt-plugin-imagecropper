@@ -162,6 +162,16 @@ sub del_prototype {
     for my $pid (@protos) {
         my $p = MT->model('thumbnail_prototype')->load($pid) or next;
         $p->remove;
+
+        $app->log({
+            author_id => $app->user->id,
+            blog_id   => $blog->id,
+            category  => 'delete',
+            class     => 'Image Cropper',
+            level     => $app->model('log')->INFO(),
+            message   => 'The thumbnail prototype &ldquo;' . $p->label} .
+                '&rdquo; has been deleted.'
+        });
     }
     $app->add_return_arg( prototype_removed => 1 );
     $app->call_return;
