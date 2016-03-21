@@ -526,12 +526,37 @@ sub _auto_crop {
         class => ['image', 'photo'],
     });
 
+    if ( !$asset ) {
+        $app->log({
+            category => 'load',
+            class    => 'Image Cropper',
+            level    => $app->model('log')->ERROR(),
+            message  => 'Image Cropper is unable to load the asset ID '
+                . $asset_id . '; child assets will not be created based on '
+                . 'Auto-Crop-enabled Prototypes.',
+        });
+        return 1;
+    }
+
     if ( defined $asset->parent ) {
         # We loaded a child asset above; we want the parent.
         $asset = $app->model('asset')->load({
             id => $asset->parent,
         })
             or return $app->error('Could not load parent asset.');
+    }
+
+    # The file needs to exist for us to do anything with it!
+    if ( !-f $asset->file_path ) {
+        $app->log({
+            blog_id  => $asset->blog_id,
+            category => 'load',
+            class    => 'Image Cropper',
+            level    => $app->model('log')->ERROR(),
+            message  => 'Image Cropper is unable to load the file '
+                . $asset->file_path . ' for asset ID ' . $asset->id . '.'
+        });
+        return 1;
     }
 
     # Load the necessary prototypes. Some prototypes may have the auto-crop
@@ -953,10 +978,29 @@ sub _remove_old_asset {
 sub upload_file_callback {
     my $cb = shift;
     my (%params) = @_;
-    my $asset = $params{'Asset'};
+    insert_auto_crop_job( $params{'Asset'} );
+}
 
-    # This must be an image for us to build thunbails.
+sub insert_auto_crop_job {
+    shift if $_[0] eq __PACKAGE__; # supports method invocation
+    my ($asset) = @_;
+
+    # This must be an image for us to build thunbails, and the file needs to
+    # exist, of course!
     return 1 unless $asset->class =~ m/(image|photo)/;
+
+    if ( !-f $asset->file_path ) {
+        MT->instance->log({
+            blog_id  => $asset->blog_id,
+            category => 'load',
+            class    => 'Image Cropper',
+            level    => MT->instance->model('log')->ERROR(),
+            message  => 'Image Cropper is unable to load the file '
+                . $asset->file_path . ' for asset ID ' . $asset->id . '; a '
+                . 'worker job to generate Auto-Crop images will not be created.'
+        });
+        return 1;
+    }
 
     # Are there any Prototypes with auto crop enabled?
     my $prototypes = MT->model('thumbnail_prototype')->exist({
@@ -965,6 +1009,9 @@ sub upload_file_callback {
     });
 
     if ( $prototypes ) {
+        # There are Prototypes with auto crop enabled, so insert a worker. The
+        # worker will figure out which prototype sizes need building and create
+        # them.
         require TheSchwartz::Job;
         require MT::TheSchwartz;
         my $job = TheSchwartz::Job->new();
@@ -975,6 +1022,8 @@ sub upload_file_callback {
         $job->run_after( time()                           );
         MT::TheSchwartz->insert( $job );
     }
+
+    return 1;
 }
 
 # Update the asset picker to hide any child assets, cleaning up the picker
