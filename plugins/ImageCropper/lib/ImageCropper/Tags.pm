@@ -22,7 +22,7 @@ sub hdlr_cropped_asset {
                 : 0;
 
     my $out;
-    my $cropped_asset = find_cropped_asset($blog_id,$a,$l);
+    my $cropped_asset = find_cropped_asset($blog_id, $a->id, $l);
     if ($cropped_asset) {
         local $ctx->{__stash}{'asset'} = $cropped_asset;
         defined( $out = $ctx->slurp( $args, $cond ) ) or return;
