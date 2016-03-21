@@ -12,7 +12,6 @@ use MT::Util qw( relative_date     ts2epoch format_ts    caturl
 use ImageCropper::Util qw( crop_filename crop_image annotate file_size find_cropped_asset );
 use Sub::Install;
 
-# use MT::Log::Log4perl qw( l4mtdump ); use Log::Log4perl qw( :resurrect ); my $logger ||= MT::Log::Log4perl->new();
 
 my %target;
 
@@ -42,7 +41,6 @@ sub post_remove_asset {
 # in order to override and wrap MT::CMS::Asset::complete_upload
 sub init_app {
     my ( $plugin, $app ) = @_;
-    ###l4p $logger ||= MT::Log::Log4perl->new(); $logger->trace();
 
     # Do nothing unless the current app is our target app
     return unless ref $app and $app->isa('MT::App::CMS');
@@ -78,8 +76,6 @@ sub init_app {
         return undef;    # We simply can't go on....
     }
 
-    ###l4p $logger->debug( 'Overriding method: '
-    ###l4p               . join('::', $target{module}, $target{method}));
 
     # Override the target method with our own version
     require Sub::Install;
@@ -96,7 +92,6 @@ sub complete_upload_wrapper {
     my $q        = $app->can('query') ? $app->query : $app->param;
     my $asset_id = $q->param('id');
 
-    ###l4p $logger     ||= MT::Log->get_logger();  $logger->trace();
 
     # Call the original method to perform the work
     $target{subref}->( $app, @_ );
