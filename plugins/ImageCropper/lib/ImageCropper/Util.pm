@@ -150,7 +150,7 @@ sub find_cropped_asset {
 
     my $map;
     if ($prototype) {
-        my $key = defined $prototype->basename
+        my $key = $prototype->basename
             ? $prototype->basename
             : 'custom_' . $prototype->id;
 
