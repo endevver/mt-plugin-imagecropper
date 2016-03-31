@@ -6,6 +6,8 @@ use warnings;
 use base 'Exporter';
 our @EXPORT_OK = qw( crop_filename crop_image annotate file_size find_prototype_id find_cropped_asset );
 
+use Scalar::Util qw( blessed );
+
 sub file_size {
     my $a     = shift;
     my $sizef = '? KB';
@@ -135,7 +137,7 @@ sub find_prototype_id {
 
 sub find_cropped_asset {
     shift if $_[0] eq __PACKAGE__; # supports method invocation
-    my ( $blog_id, $asset_id, $label ) = @_;
+    my ( $blog_id, $asset, $label ) = @_;
     $blog_id    = 0 unless ( $blog_id && $blog_id ne '' );
     return undef unless $blog_id;
     my $blog    = MT->model('blog')->load($blog_id);
@@ -154,21 +156,20 @@ sub find_cropped_asset {
 
         $map = MT->model('thumbnail_prototype_map')->load({
             prototype_key => $key,
-            asset_id      => $asset_id,
+            asset_id      => blessed($asset) ? $asset->id : $asset,
         });
     }
     elsif ( my $id = find_prototype_id( $ts, $label ) ) {
         # MT->log({ message => "prototype not found, consulted registry: " . $id });
         $map = MT->model('thumbnail_prototype_map')->load({
             prototype_key => $ts . "___" . $id,
-            asset_id      => $asset_id,
+            asset_id      => blessed($asset) ? $asset->id : $asset,
         });
     }
 
-    if ($map) {
-        return MT->model('asset')->load( $map->cropped_asset_id );
-    }
-    return undef;
+    return $map
+        ? MT->model('asset')->load( $map->cropped_asset_id )
+        : undef;
 }
 
 1;
