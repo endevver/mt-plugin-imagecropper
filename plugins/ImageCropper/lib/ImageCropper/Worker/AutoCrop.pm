@@ -37,9 +37,9 @@ sub work {
     }
 }
 
-sub grab_for    {60}
-sub max_retries {100000}
-sub retry_delay {60}
+sub grab_for    {120}
+sub max_retries {3}
+sub retry_delay {120}
 
 1;
 
