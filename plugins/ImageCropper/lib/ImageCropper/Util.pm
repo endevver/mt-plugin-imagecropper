@@ -148,28 +148,44 @@ sub find_cropped_asset {
         label   => $label,
     });
 
-    my $map;
+    my $key;
     if ($prototype) {
-        my $key = $prototype->basename
+        $key = $prototype->basename
             ? $prototype->basename
             : 'custom_' . $prototype->id;
-
-        $map = MT->model('thumbnail_prototype_map')->load({
-            prototype_key => $key,
-            asset_id      => blessed($asset) ? $asset->id : $asset,
-        });
     }
     elsif ( my $id = find_prototype_id( $ts, $label ) ) {
         # MT->log({ message => "prototype not found, consulted registry: " . $id });
-        $map = MT->model('thumbnail_prototype_map')->load({
-            prototype_key => $ts . "___" . $id,
-            asset_id      => blessed($asset) ? $asset->id : $asset,
-        });
+        $key = $ts . "___" . $id;
     }
 
-    return $map
-        ? MT->model('asset')->load( $map->cropped_asset_id )
-        : undef;
+    # If there is no key then there's no way to find a crop.
+    return undef unless $key;
+
+    FIND_CROPPED_ASSET:
+    my $map = MT->model('thumbnail_prototype_map')->load({
+        prototype_key => $key,
+        asset_id      => blessed($asset) ? $asset->id : $asset,
+    });
+
+    my $cropped_asset = MT->model('asset')->load( $map->cropped_asset_id )
+        if $map;
+
+    # Either the cropped asset couldn't be loaded for some reason or it doesn't
+    # exist yet. If the Prototype is supposed to be automatic, create it.
+    if ( ! $cropped_asset
+        && MT->model('thumbnail_prototype')->exist({
+            blog_id  => $blog_id,
+            label    => $label,
+            autocrop => 1,
+        })
+    ) {
+        require ImageCropper::Plugin;
+        ImageCropper::Plugin::_auto_crop( $asset->id );
+        goto FIND_CROPPED_ASSET;
+    }
+
+    return $cropped_asset ? $cropped_asset : undef;
 }
 
 1;

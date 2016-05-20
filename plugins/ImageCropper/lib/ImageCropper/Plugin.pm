@@ -915,12 +915,13 @@ sub _create_thumbnail {
     $map->save or die $map->errstr;
 
     return {
-        error        => $error,
-        proto_key    => $key,
-        cropped      => caturl(@cropped_file_parts),
-        cropped_path => $cropped_path,
-        cropped_url  => $cropped_url,
-        cropped_size => file_size($asset_cropped),
+        error         => $error,
+        proto_key     => $key,
+        cropped       => caturl(@cropped_file_parts),
+        cropped_path  => $cropped_path,
+        cropped_url   => $cropped_url,
+        cropped_size  => file_size($asset_cropped),
+        cropped_asset => $asset_cropped,
     };
 }
 
