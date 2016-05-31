@@ -867,12 +867,6 @@ sub _create_thumbnail {
         or $error =
             MT->translate( "Error creating cropped file: [_1]", $fmgr->errstr );
 
-    if ( $cropped_url =~ /^%r/ ) {
-        my $site_url = $blog->site_url;
-        $site_url    =~ s{/?$}{/};
-        $cropped_url =~ s{%r/?}{$site_url};
-    }
-
     my $asset_cropped = new MT::Asset::Image;
     $asset_cropped->blog_id( $blog->id );
     $asset_cropped->url($cropped_url);
