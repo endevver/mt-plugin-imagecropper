@@ -4,7 +4,7 @@ author_name: 'Endevver, LLC'
 author_link: 'http://endevver.com'
 plugin_link: 'http://endevver.com/plugins/image-cropper/'
 description: "Allows users to define a set of thumbnail prototypes that others can easily generate using a drag-and-drop image cropping tool."
-version: 1.2.6
+version: 1.2.7
 schema_version: 9
 static_version: 1
 blog_config_template: config.tmpl
@@ -15,7 +15,7 @@ callbacks:
     cms_upload_file.image: $ImageCropper::ImageCropper::Plugin::upload_file_callback
     api_upload_file.image: $ImageCropper::ImageCropper::Plugin::upload_file_callback
     cms_upload_file.photo: $ImageCropper::ImageCropper::Plugin::upload_file_callback
-    app_pre_listing_dialog_list_asset: $ImageCropper::ImageCropper::Plugin::app_pre_listing_dialog_list_asset
+    template_param.async_asset_list: $ImageCropper::ImageCropper::Plugin::template_param_async_asset_list_callback
     post_apply_theme: $ImageCropper::ImageCropper::Plugin::post_apply_theme_callback
 
 task_workers:
