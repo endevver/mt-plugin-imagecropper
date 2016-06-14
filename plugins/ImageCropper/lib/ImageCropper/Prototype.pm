@@ -109,7 +109,6 @@ sub list_properties {
 sub edit_prototype {
     my $app     = shift;
     my ($param) = @_;
-    my $q       = $app->can('query') ? $app->query : $app->param;
     my $blog    = $app->blog;
     my $Proto   = MT->model('thumbnail_prototype');
     $param    ||= {};
@@ -135,27 +134,25 @@ sub save_prototype {
     my $Proto = MT->model('thumbnail_prototype');
     my $obj   = $Proto->load({ id => $app->param('id') }) || $Proto->new;
     my $param;
-    my $q = $app->can('query') ? $app->query : $app->param;
 
-    $obj->$_( $q->param($_) )
+    $obj->$_( $app->param($_) )
         foreach (qw(blog_id max_width max_height label basename));
 
     # Check or uncheck the Enable Autocrop checkbox.
-    my $autocrop = $q->param('autocrop') ? 1 : 0;
+    my $autocrop = $app->param('autocrop') ? 1 : 0;
     $obj->autocrop( $autocrop );
 
     $obj->save or return $app->error( $obj->errstr );
 
     return $app->redirect(
         $app->mt_uri . "?__mode=list&_type=thumbnail_prototype&blog_id="
-            . $q->param('blog_id') . "&prototype_saved=1" );
+            . $app->param('blog_id') . "&prototype_saved=1" );
 }
 
 sub del_prototype {
     my ($app) = @_;
     $app->validate_magic or return;
-    my $q = $app->can('query') ? $app->query : $app->param;
-    my @protos = $q->param('id');
+    my @protos = $app->param('id');
     for my $pid (@protos) {
         my $p = MT->model('thumbnail_prototype')->load({ id => $pid }) or next;
         $p->remove;

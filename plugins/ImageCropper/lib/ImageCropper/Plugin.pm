@@ -94,8 +94,7 @@ sub init_app {
 
 sub complete_upload_wrapper {
     my $app      = shift;
-    my $q        = $app->can('query') ? $app->query : $app->param;
-    my $asset_id = $q->param('id');
+    my $asset_id = $app->param('id');
 
     ###l4p $logger     ||= MT::Log->get_logger();  $logger->trace();
 
@@ -112,9 +111,9 @@ sub complete_upload_wrapper {
                     'from'        => 'view',
                     '_type'       => 'asset',
                     'id'          => $asset_id,
-                    'blog_id'     => $q->param('blog_id'),
+                    'blog_id'     => $app->param('blog_id'),
                     'return_args' => $app->return_args,
-                    'magic_token' => $q->param('magic_token')
+                    'magic_token' => $app->param('magic_token')
                 }
             )
         );
@@ -187,7 +186,6 @@ sub load_ts_prototype {
 # auto-crop images.
 sub content_action_import_ts_prototypes {
     my $app  = MT->instance;
-    my $q    = $app->can('query') ? $app->query : $app->param;
     my $blog = $app->blog;
 
     _import_ts_prototypes( $blog );
@@ -202,7 +200,6 @@ sub content_action_import_ts_prototypes {
 # link to provide the opportunity to import them.
 sub import_prototypes_condition {
     my ($app) = MT->instance;
-    my $q = $app->can('query') ? $app->query : $app->param;
 
     return 0 unless $app->blog && $app->blog->id;
 
@@ -215,8 +212,7 @@ sub import_prototypes_condition {
 sub list_action_import_ts_prototypes {
     my ($app) = @_;
     $app->validate_magic or return;
-    my $q = $app->can('query') ? $app->query : $app->param;
-    my @blog_ids = $q->param('id');
+    my @blog_ids = $app->param('id');
 
     for my $blog_id (@blog_ids) {
         my $blog = $app->model('blog')->load({ id => $blog_id })
@@ -394,10 +390,9 @@ sub gen_thumbnails_start {
 # trash can icon in the prototype preview area.
 sub delete_crop {
     my $app  = shift;
-    my $q    = $app->can('query') ? $app->query : $app->param;
     my $blog = $app->blog;
-    my $id   = $q->param('id');
-    my $key  = $q->param('prototype');
+    my $id   = $app->param('id');
+    my $key  = $app->param('prototype');
 
     _remove_old_asset({
         asset_id => $id,
@@ -417,8 +412,7 @@ sub delete_crop {
 # crop/resize to create a thumbnail.
 sub crop {
     my $app  = shift;
-    my $q    = $app->can('query') ? $app->query : $app->param;
-    my $id   = $q->param('asset');
+    my $id   = $app->param('asset');
     my $blog = $app->blog;
 
     my $asset = $app->model('asset')->load({ id => $id })
@@ -426,17 +420,17 @@ sub crop {
 
     my $result = _create_thumbnail({
         asset          => $asset,
-        prototype_key  => $q->param('key'),
-        w              => $q->param('w'),
-        h              => $q->param('h'),
-        x              => $q->param('x'),
-        y              => $q->param('y'),
-        quality        => $q->param('quality'),
-        annotate       => $q->param('annotate'),
-        text           => $q->param('text'),
-        text_size      => $q->param('text_size'),
-        text_location  => $q->param('text_loc'),
-        text_rotation  => $q->param('text_rot'),
+        prototype_key  => $app->param('key'),
+        w              => $app->param('w'),
+        h              => $app->param('h'),
+        x              => $app->param('x'),
+        y              => $app->param('y'),
+        quality        => $app->param('quality'),
+        annotate       => $app->param('annotate'),
+        text           => $app->param('text'),
+        text_size      => $app->param('text_size'),
+        text_location  => $app->param('text_loc'),
+        text_rotation  => $app->param('text_rot'),
     });
 
     return _send_json_response( $app, $result );
@@ -475,9 +469,8 @@ sub _box_dim {
 sub page_action_auto_crop {
     my ($app) = @_;
     $app->validate_magic or return;
-    my $q = $app->can('query') ? $app->query : $app->param;
 
-    _auto_crop( $q->param('id') );
+    _auto_crop( $app->param('id') );
 
     $app->add_return_arg( thumbnails_created => 1 );
     $app->call_return;
@@ -487,8 +480,7 @@ sub page_action_auto_crop {
 # actions be displayed for this asset? Check that it's an image asset first.
 sub page_action_condition {
     my ($app) = MT->instance;
-    my $q = $app->can('query') ? $app->query : $app->param;
-    my $asset_id = $q->param('id');
+    my $asset_id = $app->param('id');
 
     return 1 if $app->model('asset')->exist({
         id    => $asset_id,
@@ -504,8 +496,7 @@ sub page_action_condition {
 sub list_action_auto_crop {
     my ($app) = @_;
     $app->validate_magic or return;
-    my $q = $app->can('query') ? $app->query : $app->param;
-    my @asset_ids = $q->param('id');
+    my @asset_ids = $app->param('id');
 
     for my $asset_id (@asset_ids) {
         _auto_crop( $asset_id );
