@@ -18,7 +18,7 @@ sub hdlr_cropped_asset {
 
     my $blog_id = defined $args->{blog_id}  ? $args->{blog_id}
                 : defined $a->blog_id       ? $a->blog_id
-                : ref $blog                 ? $blog->id 
+                : ref $blog                 ? $blog->id
                 : 0;
 
     my $out;

@@ -290,9 +290,7 @@ sub gen_thumbnails_start {
 
     if ( defined $obj->parent ) {
         # We loaded a child asset above; we want the parent.
-        $obj = $app->model('asset')->load({
-            id => $obj->parent,
-        })
+        $obj = $app->model('asset')->load({ id => $obj->parent })
             or return $app->error('Could not load parent asset.');
     }
 
@@ -300,12 +298,7 @@ sub gen_thumbnails_start {
 
     my @protos;
     my @custom = $app->model('thumbnail_prototype')->load(
-        {
-            blog_id => $app->blog->id,
-        },
-        {
-            sort => 'label',
-        }
+        { blog_id => $app->blog->id }, { sort => 'label' }
     );
     foreach (@custom) {
         push @protos, {
