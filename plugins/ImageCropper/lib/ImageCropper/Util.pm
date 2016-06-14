@@ -140,7 +140,7 @@ sub find_cropped_asset {
     my ( $blog_id, $asset, $label ) = @_;
     $blog_id    = 0 unless ( $blog_id && $blog_id ne '' );
     return undef unless $blog_id;
-    my $blog    = MT->model('blog')->load($blog_id);
+    my $blog    = MT->model('blog')->load({ id => $blog_id });
     my $ts      = $blog->template_set;
 
     my $prototype = MT->model('thumbnail_prototype')->load({
@@ -168,7 +168,8 @@ sub find_cropped_asset {
         asset_id      => blessed($asset) ? $asset->id : $asset,
     });
 
-    my $cropped_asset = MT->model('asset')->load( $map->cropped_asset_id )
+    my $cropped_asset
+        = MT->model('asset')->load({ id => $map->cropped_asset_id })
         if $map;
 
     # Either the cropped asset couldn't be loaded for some reason or it doesn't

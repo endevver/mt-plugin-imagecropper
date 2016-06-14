@@ -14,7 +14,7 @@ sub hdlr_cropped_asset {
         or return $ctx->_no_asset_error();
 
     my $blog    =  $ctx->stash('blog')
-                || MT->model('blog')->load( $a->blog_id );
+                || MT->model('blog')->load({ id => $a->blog_id });
 
     my $blog_id = defined $args->{blog_id}  ? $args->{blog_id}
                 : defined $a->blog_id       ? $a->blog_id

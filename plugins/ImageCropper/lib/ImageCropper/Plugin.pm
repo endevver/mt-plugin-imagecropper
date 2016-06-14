@@ -24,7 +24,7 @@ sub post_remove_asset {
         asset_id => $obj->id,
     });
     foreach my $map (@maps) {
-        my $a = MT->model('asset')->load( $map->cropped_asset_id );
+        my $a = MT->model('asset')->load({ id => $map->cropped_asset_id });
         $a->remove   if $a;
         $map->remove if $map;
     }
@@ -148,7 +148,7 @@ sub hdlr_cropped_asset {
         or return $ctx->_no_asset_error();
 
     my $blog    =  $ctx->stash('blog')
-                || MT->model('blog')->load( $a->blog_id );
+                || MT->model('blog')->load({ id => $a->blog_id });
 
     my $blog_id = defined $args->{blog_id}  ? $args->{blog_id}
                 : defined $a->blog_id       ? $a->blog_id
@@ -219,7 +219,7 @@ sub list_action_import_ts_prototypes {
     my @blog_ids = $q->param('id');
 
     for my $blog_id (@blog_ids) {
-        my $blog = $app->model('blog')->load( $blog_id )
+        my $blog = $app->model('blog')->load({ id => $blog_id })
             or next;
         _import_ts_prototypes( $blog );
     }
@@ -287,8 +287,9 @@ sub gen_thumbnails_start {
 
     # We want to work with the parent asset only. Is this the parent? If not,
     # find it.
-    my $id  = $app->{query}->param('id');
-    my $obj = $app->model('asset')->load( $id)
+    my $id  = int($app->param('id'))
+        or return $app->error('No "id" parameter provided for asset');
+    my $obj = $app->model('asset')->load({ id => $id })
         or return $app->error('Could not load asset.');
 
     if ( defined $obj->parent ) {
@@ -341,7 +342,7 @@ sub gen_thumbnails_start {
             $y = $map->cropped_y;
             $w = $map->cropped_w;
             $h = $map->cropped_h;
-            my $a = MT->model('asset')->load( $map->cropped_asset_id );
+            my $a = MT->model('asset')->load({ id => $map->cropped_asset_id });
             if ($a) {
                 $url  = $a->url;
                 $size = file_size($a);
@@ -420,8 +421,8 @@ sub crop {
     my $id   = $q->param('asset');
     my $blog = $app->blog;
 
-    my $asset = $app->model('asset')->load( $id )
-        or return { error => "Asset $id could not be loaded." };
+    my $asset = $app->model('asset')->load({ id => $id })
+        or return { error => "Asset ID $id could not be loaded." };
 
     my $result = _create_thumbnail({
         asset          => $asset,
@@ -698,7 +699,7 @@ sub _create_thumbnail {
     my $app       = MT->instance;
     my $plugin    = MT->component('imagecropper');
 
-    my $blog = $app->model('blog')->load( $asset->blog_id );
+    my $blog = $app->model('blog')->load({ id => $asset->blog_id });
 
     my $quality = $plugin->get_config_value(
         'default_quality',
@@ -732,7 +733,7 @@ sub _create_thumbnail {
 
     my $prototype;
     if ( $key =~ /custom_(\d+)/ ) {
-        $prototype = MT->model('thumbnail_prototype')->load($1);
+        $prototype = MT->model('thumbnail_prototype')->load({ id => $1 });
     }
     else {
         $prototype = MT->model('thumbnail_prototype')->load({
@@ -952,7 +953,8 @@ sub _remove_old_asset {
                     . $oldmap->errstr,
             });
 
-        my $oldasset = MT->model('asset')->load( $oldmap->cropped_asset_id );
+        my $oldasset
+            = MT->model('asset')->load({ id => $oldmap->cropped_asset_id });
         if ($oldasset) {
             $oldasset->remove()
                 or MT->log({

@@ -111,16 +111,13 @@ sub edit_prototype {
     my ($param) = @_;
     my $q       = $app->can('query') ? $app->query : $app->param;
     my $blog    = $app->blog;
+    my $Proto   = MT->model('thumbnail_prototype');
+    $param    ||= {};
 
-    $param ||= {};
-
-    my $obj;
-    if ( $q->param('id') ) {
-        $obj = MT->model('thumbnail_prototype')->load( $q->param('id') );
-    }
-    else {
-        $obj = MT->model('thumbnail_prototype')->new();
-    }
+    # FIXME Should a missing or non-integer 'id' parameter yield an exception?
+    my $id   = int( $app->param('id') );
+    my $obj  = $Proto->load({ id => $id }) if $id;
+    $obj   ||= $Proto->new();
 
     $param->{blog_id}    = $blog->id;
     $param->{id}         = $obj->id;
@@ -134,11 +131,11 @@ sub edit_prototype {
 }
 
 sub save_prototype {
-    my $app = shift;
+    my $app   = shift;
+    my $Proto = MT->model('thumbnail_prototype');
+    my $obj   = $Proto->load({ id => $app->param('id') }) || $Proto->new;
     my $param;
     my $q = $app->can('query') ? $app->query : $app->param;
-    my $obj = MT->model('thumbnail_prototype')->load( $q->param('id') )
-        || MT->model('thumbnail_prototype')->new;
 
     $obj->$_( $q->param($_) )
         foreach (qw(blog_id max_width max_height label basename));
@@ -160,7 +157,7 @@ sub del_prototype {
     my $q = $app->can('query') ? $app->query : $app->param;
     my @protos = $q->param('id');
     for my $pid (@protos) {
-        my $p = MT->model('thumbnail_prototype')->load($pid) or next;
+        my $p = MT->model('thumbnail_prototype')->load({ id => $pid }) or next;
         $p->remove;
 
         $app->log({
