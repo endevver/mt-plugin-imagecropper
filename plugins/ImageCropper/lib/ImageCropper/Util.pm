@@ -137,7 +137,7 @@ sub find_prototype_id {
 
 sub find_cropped_asset {
     shift if $_[0] eq __PACKAGE__; # supports method invocation
-    my ( $blog_id, $asset, $label ) = @_;
+    my ( $blog_id, $asset, $label, $no_autocrop ) = @_;
     $blog_id    = 0 unless ( $blog_id && $blog_id ne '' );
     return undef unless $blog_id;
     my $blog    = MT->model('blog')->load({ id => $blog_id });
@@ -171,11 +171,11 @@ sub find_cropped_asset {
     my $cropped_asset
         = MT->model('asset')->load({ id => $map->cropped_asset_id })
         if $map;
+    return $cropped_asset if $cropped_asset or $no_autocrop;
 
     # Either the cropped asset couldn't be loaded for some reason or it doesn't
     # exist yet. If the Prototype is supposed to be automatic, create it.
-    if ( ! $cropped_asset
-        && MT->model('thumbnail_prototype')->exist({
+    if ( MT->model('thumbnail_prototype')->exist({
             blog_id  => $blog_id,
             label    => $label,
             autocrop => 1,
@@ -185,8 +185,6 @@ sub find_cropped_asset {
         ImageCropper::Plugin::_auto_crop( $asset->id );
         goto FIND_CROPPED_ASSET;
     }
-
-    return $cropped_asset ? $cropped_asset : undef;
 }
 
 1;
