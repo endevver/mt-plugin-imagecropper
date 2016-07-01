@@ -503,7 +503,7 @@ sub list_action_auto_crop {
 # created based on all prototypes in the blog that are marked for autocrop.
 sub _auto_crop {
     my ($asset_id) = @_;
-    my $app      = MT->instance;
+    my $app        = MT->instance;
 
     # We want to work with the parent asset only. Is this the parent? If not,
     # find it.
@@ -512,7 +512,7 @@ sub _auto_crop {
         class => ['image', 'photo'],
     });
 
-    if ( !$asset ) {
+    if ( ! $asset ) {
         $app->log({
             category => 'load',
             class    => 'Image Cropper',
@@ -533,7 +533,7 @@ sub _auto_crop {
     }
 
     # The file needs to exist for us to do anything with it!
-    if ( !-f $asset->file_path ) {
+    if ( ! -f $asset->file_path ) {
         $app->log({
             blog_id  => $asset->blog_id,
             category => 'load',
@@ -552,10 +552,10 @@ sub _auto_crop {
         autocrop => 1,
     });
 
-    foreach my $prototype (@prototypes) {
-        my $prototype_key = $prototype->basename ne ''
-            ? $prototype->basename
-            : 'custom_' . $prototype->id;
+    foreach my $prototype ( @prototypes ) {
+        my $prototype_key = ( $prototype->basename // '' ) ne ''
+                              ? $prototype->basename
+                              : 'custom_' . $prototype->id;
 
         # Does a crop with this prototype exist? If yes, give up. We don't want
         # to auto-crop and potentially destroy a manually cropped image.
@@ -565,13 +565,11 @@ sub _auto_crop {
         # exist to these old-style keys, look for any in addition to the new
         # style.
         my $old_style_key = $prototype_key;
-        $old_style_key =~ s/__/::/;
-
-        my $map = $app->model('thumbnail_prototype_map')->load({
+        $old_style_key    =~ s/__/::/;
+        my $map           = $app->model('thumbnail_prototype_map')->load({
             asset_id      => $asset->id,
-            prototype_key => [$prototype_key, $old_style_key],
+            prototype_key => [ $prototype_key, $old_style_key ],
         });
-
         next if $map && $app->model('asset')->exist( $map->cropped_asset_id );
 
         # Is this a cropped child asset? We don't want to create crops of child
