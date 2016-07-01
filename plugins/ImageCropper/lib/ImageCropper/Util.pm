@@ -6,8 +6,8 @@ use warnings;
 use base 'Exporter';
 our @EXPORT_OK = qw( crop_filename crop_image annotate file_size find_prototype_id find_cropped_asset );
 
-use Scalar::Util qw( blessed );
 use Carp qw( croak );
+use Scalar::Util qw( blessed looks_like_number );
 use Try::Tiny;
 
 sub file_size {
@@ -131,9 +131,11 @@ sub find_prototype_id {
     my ( $ts, $label ) = @_;
     return undef unless $ts;
     my $protos = MT->registry('template_sets')->{$ts}->{thumbnail_prototypes};
-    foreach ( keys %$protos ) {
-        my $l = $protos->{$_}->{label};
-        return $_ if ( $l && $l ne '' && &{$l} eq $label );
+    foreach my $proto ( keys %$protos ) {
+        my $l = $protos->{$proto}->{label};
+        return $proto if $l
+                      && $l ne ''
+                      && &{$l} eq $label;
     }
 }
 
@@ -158,57 +160,40 @@ sub prototype_key {
 }
 
 sub find_cropped_asset {
-    shift if $_[0] eq __PACKAGE__; # supports method invocation
+    shift if $_[0] eq __PACKAGE__; # supports class or method invocation
     my ( $blog_id, $asset, $label ) = @_;
-    $blog_id    = 0 unless ( $blog_id && $blog_id ne '' );
-    return undef unless $blog_id;
-    my $blog    = MT->model('blog')->load({ id => $blog_id });
-    my $ts      = $blog->template_set;
+    ( $asset, my $asset_id ) = ( undef, $asset ) if looks_like_number( $asset );
 
-    my $prototype = MT->model('thumbnail_prototype')->load({
-        blog_id => $blog_id,
-        label   => $label,
-    });
+    # Die if we're not provided the information we need to do our job
+    my $Asset = MT->model('asset');
+    croak "No valid asset_id or asset provided"
+        unless $asset_id || try { $asset->isa($Asset) };
 
-    my $key;
-    if ($prototype) {
-        $key = $prototype->basename
-            ? $prototype->basename
-            : 'custom_' . $prototype->id;
-    }
-    elsif ( my $id = find_prototype_id( $ts, $label ) ) {
-        # MT->log({ message => "prototype not found, consulted registry: " . $id });
-        $key = $ts . "___" . $id;
-    }
+    my $Prototype       = MT->model('thumbnail_prototype');
+    my $prototype_terms = { blog_id => $blog_id, label => $label };
 
-    # If there is no key then there's no way to find a crop.
-    return undef unless $key;
+    my $key = prototype_key( $blog_id, $label )
+        or return;   ### FIXME Should we return a default image?
 
-    FIND_CROPPED_ASSET:
-    my $map = MT->model('thumbnail_prototype_map')->load({
-        prototype_key => $key,
-        asset_id      => blessed($asset) ? $asset->id : $asset,
-    });
+    my $cropped_asset;
 
-    my $cropped_asset
-        = MT->model('asset')->load({ id => $map->cropped_asset_id })
-        if $map;
-
-    # Either the cropped asset couldn't be loaded for some reason or it doesn't
-    # exist yet. If the Prototype is supposed to be automatic, create it.
-    if ( ! $cropped_asset
-        && MT->model('thumbnail_prototype')->exist({
-            blog_id  => $blog_id,
-            label    => $label,
-            autocrop => 1,
-        })
-    ) {
-        require ImageCropper::Plugin;
-        ImageCropper::Plugin::_auto_crop( $asset->id );
-        goto FIND_CROPPED_ASSET;
+    my $terms = { prototype_key => $key, asset_id => $asset_id || $asset->id };
+    if ( my $map = MT->model('thumbnail_prototype_map')->load($terms) ) {
+        $cropped_asset = $Asset->load({ id => $map->cropped_asset_id });
+            # May be undef which is okay
     }
 
-    return $cropped_asset ? $cropped_asset : undef;
+    unless ( $cropped_asset ) {
+        $asset ||= $Asset->load({ id => $asset_id });
+        ImageCropper::Plugin::insert_auto_crop_job( $asset );
+        $cropped_asset = default_autocrop_image();
+    }
+
+    return $cropped_asset;
+}
+
+sub default_autocrop_image {
+    ### FIXME We need a default image to return
 }
 
 1;
