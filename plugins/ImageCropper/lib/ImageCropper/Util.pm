@@ -7,6 +7,8 @@ use base 'Exporter';
 our @EXPORT_OK = qw( crop_filename crop_image annotate file_size find_prototype_id find_cropped_asset );
 
 use Scalar::Util qw( blessed );
+use Carp qw( croak );
+use Try::Tiny;
 
 sub file_size {
     my $a     = shift;
@@ -133,6 +135,26 @@ sub find_prototype_id {
         my $l = $protos->{$_}->{label};
         return $_ if ( $l && $l ne '' && &{$l} eq $label );
     }
+}
+
+sub prototype_key {
+    my ( $blog_id, $label ) = @_;
+    croak "No valid blog_id provided" unless looks_like_number($blog_id);
+    croak "No label specified"        unless $label;
+
+    return try {
+        my $Prototype       = MT->model('thumbnail_prototype');
+        my $prototype_terms = { blog_id => $blog_id, label => $label };
+        my $prototype       = $Prototype->load($prototype_terms);
+        $prototype->basename ? $prototype->basename
+                             : 'custom_' . $prototype->id;
+    }
+    catch {
+        my $blog = MT->model('blog')->load({ id => $blog_id });
+        my $ts   = $blog->template_set;
+        my $id   = find_prototype_id( $ts, $label );
+        $id ? $ts . "___" . $id : undef;
+    };
 }
 
 sub find_cropped_asset {
