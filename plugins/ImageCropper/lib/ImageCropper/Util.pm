@@ -185,6 +185,7 @@ sub find_cropped_asset {
 
     unless ( $cropped_asset ) {
         $asset ||= $Asset->load({ id => $asset_id });
+        require ImageCropper::Plugin;
         ImageCropper::Plugin::insert_auto_crop_job( $asset );
         $cropped_asset = default_autocrop_image();
     }
