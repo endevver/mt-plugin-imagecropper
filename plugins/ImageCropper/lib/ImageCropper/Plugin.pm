@@ -870,6 +870,7 @@ sub _create_thumbnail {
         )
     );
     $asset_cropped->parent( $asset->id );
+    $asset_cropped->mime_type( $asset->mime_type );
     $asset_cropped->save or die $asset_cropped->errstr;
 
     $app->log({
