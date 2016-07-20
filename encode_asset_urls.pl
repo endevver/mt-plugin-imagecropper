@@ -40,15 +40,18 @@ sub main {
 
         next if $url =~ m/$enc_file_name/;
 
-        print "* Found asset " . $asset->id . ',  in blog ID ' . $asset->blog_id
+        print "* Found asset " . $asset->id . ', in blog ID ' . $asset->blog_id
             . ': ' . $asset->file_name . "\n";
         print "  * Original URL: $url\n";
 
-        $url =~ s!(.)$file_name$!$1!;
+        # Quote $file_name, which likely contains the very characters that can
+        # be troublesome so that they will be properly escaped:
+        # \ | ( ) [ { ^ $ * + ? .
+        $url =~ s{(.)\Q$file_name\E}{$1};
         $url .= $enc_file_name;
 
         $asset->url( $url );
-        # $asset->save or die $asset->errstr;
+        $asset->save or die $asset->errstr;
 
         print '  * Updated URL: ' . $asset->url . "\n\n";
         $counter++;
