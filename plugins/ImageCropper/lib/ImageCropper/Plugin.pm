@@ -7,7 +7,9 @@ use strict;
 use warnings;
 
 use Carp qw( croak longmess confess );
-use MT::Util qw( relative_date     ts2epoch format_ts    caturl
+use Sub::Install;
+
+use MT::Util qw( relative_date     ts2epoch format_ts    caturl    encode_url
                  offset_time_list  epoch2ts offset_time  dirify );
 use ImageCropper::Util qw( crop_filename crop_image annotate file_size find_cropped_asset );
 use Sub::Install;
@@ -743,7 +745,8 @@ sub _create_thumbnail {
     my $cropped_path =
       File::Spec->catfile( $cache_path, @cropped_file_parts );
 
-    my $cropped_url = caturl( $cache_url, @cropped_file_parts );
+    my $cropped_url_filename = encode_url( $cropped_file_parts[-1] );
+    my $cropped_url = caturl( $cache_url, $cropped_url_filename );
 
     my ( $base, $path, $ext ) =
       File::Basename::fileparse( File::Spec->catfile(@cropped_file_parts),
@@ -870,6 +873,7 @@ sub _create_thumbnail {
         )
     );
     $asset_cropped->parent( $asset->id );
+    $asset_cropped->mime_type( $asset->mime_type );
     $asset_cropped->save or die $asset_cropped->errstr;
 
     $app->log({
