@@ -174,7 +174,7 @@ sub find_cropped_asset {
     $asset = $Asset->load({ id => $asset_id })
         if defined $asset_id;
 
-    if ( defined $asset->parent ) {
+    while ( $asset->parent ) {
         # We loaded a child asset above; we want the parent.
         $asset = $Asset->load({ id => $asset->parent })
             or croak 'Could not load parent asset.';

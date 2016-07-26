@@ -290,7 +290,7 @@ sub gen_thumbnails_start {
     my $obj = $app->model('asset')->load({ id => $id })
         or return $app->error('Could not load asset.');
 
-    if ( defined $obj->parent ) {
+    while ( $obj->parent ) {
         # We loaded a child asset above; we want the parent.
         $obj = $app->model('asset')->load({ id => $obj->parent })
             or return $app->error('Could not load parent asset.');
@@ -533,9 +533,8 @@ sub _auto_crop {
     });
 
     if ( ! $asset ) {
-        my $msg = 'Image Cropper is unable to load the asset ID '
-                . $asset_id . '; child assets will not be created based on '
-                . 'Auto-Crop-enabled Prototypes.';
+        my $msg = 'Image Cropper is unable to load the asset ID ' . $asset_id
+            . ' for processing with Auto-Crop-enabled Prototypes.';
         $app->log({
             category => 'load',
             class    => 'Image Cropper',
@@ -545,7 +544,7 @@ sub _auto_crop {
         return $app->error($msg);
     }
 
-    if ( $asset->parent ) {
+    while ( $asset->parent ) {
         # We loaded a child asset above; we want the parent.
         $asset = $app->model('asset')->load({
             id => $asset->parent,
