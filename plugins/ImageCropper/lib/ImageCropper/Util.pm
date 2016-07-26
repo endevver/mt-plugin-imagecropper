@@ -169,6 +169,17 @@ sub find_cropped_asset {
     croak "No valid asset_id or asset provided"
         unless $asset_id || try { $asset->isa($Asset) };
 
+    # Cropped assets are created with the parent asset, so make sure the parent
+    # is being used now, too, so that the proper cropped asset can be found.
+    $asset = $Asset->load({ id => $asset_id })
+        if defined $asset_id;
+
+    if ( defined $asset->parent ) {
+        # We loaded a child asset above; we want the parent.
+        $asset = $Asset->load({ id => $asset->parent })
+            or croak 'Could not load parent asset.';
+    }
+
     my $Prototype       = MT->model('thumbnail_prototype');
     my $prototype_terms = { blog_id => $blog_id, label => $label };
 
@@ -177,7 +188,7 @@ sub find_cropped_asset {
 
     my $cropped_asset;
 
-    my $terms = { prototype_key => $key, asset_id => $asset_id || $asset->id };
+    my $terms = { prototype_key => $key, asset_id => $asset->id };
     if ( my $map = MT->model('thumbnail_prototype_map')->load($terms) ) {
         $cropped_asset = $Asset->load({ id => $map->cropped_asset_id });
             # May be undef which is okay
