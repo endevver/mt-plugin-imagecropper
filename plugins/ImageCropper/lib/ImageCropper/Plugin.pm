@@ -1041,7 +1041,7 @@ sub insert_auto_crop_job {
         $job->funcname(  'ImageCropper::Worker::AutoCrop' );
         $job->coalesce(  $asset->id                       );
         $job->uniqkey(   $asset->id                       );
-        $job->priority(  1                                );
+        $job->priority(  2                                );
         $job->run_after( time()                           );
         MT::TheSchwartz->insert( $job );
     }
