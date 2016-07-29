@@ -161,7 +161,7 @@ sub prototype_key {
 
 sub find_cropped_asset {
     shift if $_[0] eq __PACKAGE__; # supports class or method invocation
-    my ( $blog_id, $asset, $label ) = @_;
+    my ( $blog_id, $asset, $label, $no_autocrop ) = @_;
     ( $asset, my $asset_id ) = ( undef, $asset ) if looks_like_number( $asset );
 
     require MT::Memcached;
@@ -180,10 +180,13 @@ sub find_cropped_asset {
     # Cropped assets are created with the parent asset, so make sure the parent
     # is being used now, too, so that the proper cropped asset can be found.
     $asset = $Asset->load({ id => $asset_id })
-        if defined $asset_id;
+        or croak "Asset ID $asset_id could not be loaded."
+            if defined $asset_id;
 
+    # We loaded a child asset above; we want the parent. The while statement
+    # lets us get to the "real" parent if this asset is a child of a child of a
+    # child, etc.
     while ( $asset->parent ) {
-        # We loaded a child asset above; we want the parent.
         $asset = $Asset->load({ id => $asset->parent })
             or croak 'Could not load parent asset.';
     }
@@ -193,6 +196,12 @@ sub find_cropped_asset {
 
     my $key = prototype_key( $blog_id, $label )
         or return;   ### FIXME Should we return a default image?
+                     ### With no valid prototype key we can't find a cropped
+                     ### asset. I'm inclined to say this is a template problem
+                     ### where the template incorrectly identifies the
+                     ### prototype to use and so returning no default image is
+                     ### preferred, to help make it clear there's a template
+                     ### bug.
 
     my $terms = { prototype_key => $key, asset_id => $asset->id };
     if ( my $map = MT->model('thumbnail_prototype_map')->load($terms) ) {
@@ -211,6 +220,12 @@ sub find_cropped_asset {
             ImageCropper::Plugin::insert_auto_crop_job( $asset );
         }
         $cropped_asset = default_autocrop_image();
+
+        # If $no_autocrop is true then we want to provide a valid asset *right
+        # now*, not whenever the autocrop job is finished. The parent asset
+        # will do.
+        $cropped_asset = $asset
+            if $no_autocrop;
     }
 
     return $cropped_asset;
