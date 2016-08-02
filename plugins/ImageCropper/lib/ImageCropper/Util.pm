@@ -164,6 +164,15 @@ sub find_cropped_asset {
     my ( $blog_id, $asset, $label ) = @_;
     ( $asset, my $asset_id ) = ( undef, $asset ) if looks_like_number( $asset );
 
+    require MT::Memcached;
+    my $cache         = MT::Memcached->instance;
+    my $cache_key     = join(':', 'cropped_asset', $blog_id,
+                                  ( $asset_id || $asset->id ), $label );
+    my $cropped_asset = $cache->get( $cache_key );
+    return $cropped_asset if $cropped_asset;
+
+    print STDERR "Memcache miss: $cache_key\n" if $MT::DebugMode & 2;
+
     # Die if we're not provided the information we need to do our job
     my $Asset = MT->model('asset');
     croak "No valid asset_id or asset provided"
@@ -186,18 +195,22 @@ sub find_cropped_asset {
     my $key = prototype_key( $blog_id, $label )
         or return;   ### FIXME Should we return a default image?
 
-    my $cropped_asset;
-
     my $terms = { prototype_key => $key, asset_id => $asset->id };
     if ( my $map = MT->model('thumbnail_prototype_map')->load($terms) ) {
         $cropped_asset = $Asset->load({ id => $map->cropped_asset_id });
             # May be undef which is okay
     }
 
-    unless ( $cropped_asset ) {
-        $asset ||= $Asset->load({ id => $asset_id });
-        require ImageCropper::Plugin;
-        ImageCropper::Plugin::insert_auto_crop_job( $asset );
+    if ( $cropped_asset ) {
+        print STDERR "Memcache set: $cache_key = $cropped_asset\n"
+            if $MT::DebugMode & 2;
+        $cache->set( $cache_key => $cropped_asset );
+    }
+    else {
+        if ( $asset ||= $Asset->load({ id => $asset_id }) ) {
+            require ImageCropper::Plugin;
+            ImageCropper::Plugin::insert_auto_crop_job( $asset );
+        }
         $cropped_asset = default_autocrop_image();
     }
 
