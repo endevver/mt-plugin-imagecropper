@@ -168,10 +168,9 @@ sub find_cropped_asset {
     my $cache         = MT::Memcached->instance;
     my $cache_key     = join(':', 'cropped_asset', $blog_id,
                                   ( $asset_id || $asset->id ), $label );
+    $cache_key =~ s! !_!g;
     my $cropped_asset = $cache->get( $cache_key );
     return $cropped_asset if $cropped_asset;
-
-    print STDERR "Memcache miss: $cache_key\n" if $MT::DebugMode & 2;
 
     # Die if we're not provided the information we need to do our job
     my $Asset = MT->model('asset');
