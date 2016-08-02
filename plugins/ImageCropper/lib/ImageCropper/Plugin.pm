@@ -908,15 +908,20 @@ sub _create_thumbnail {
     $asset_cropped->mime_type( $asset->mime_type );
     $asset_cropped->save or die $asset_cropped->errstr;
 
+    my $msg = sprintf( 'Image Cropper created a new child asset (ID %d) based '
+                     . 'on the Thumbnail Prototype &ldquo;%s&rdquo; and the '
+                     . 'parent asset %s(ID %d).',
+        $asset_cropped->id,
+        $prototype->label,
+        ( $asset->label ? '&ldquo;'.$asset->label.'&rdquo; ' : '' ),
+        $asset->id
+    );
     $app->log({
         blog_id   => $blog->id,
         category  => 'new',
         class     => 'asset',
         level     => $app->model('log')->INFO(),
-        message   => 'Image Cropper created a new child asset (ID '
-            . $asset_cropped->id . ') based on the Thumbnail Prototype &ldquo;'
-            . $prototype->label . '&rdquo; and the parent asset &ldquo;'
-            . $asset->label . '&rdquo; (ID ' . $asset->id . ').',
+        message   => $msg,
     });
 
     my $map = MT->model('thumbnail_prototype_map')->new;
