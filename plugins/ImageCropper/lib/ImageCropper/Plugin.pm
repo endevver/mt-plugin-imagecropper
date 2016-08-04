@@ -470,8 +470,11 @@ sub page_action_auto_crop {
     return $app->error('Invalid ID parameter')
         unless looks_like_number( $id );
 
-    my $cropped = _auto_crop( $id ) or return;
-    $app->add_return_arg( thumbnails_created => scalar @$cropped );
+    my $asset = $app->model('asset')->load({id => $id})
+        or return;
+    my $cropped = insert_auto_crop_job( $asset );
+
+    $app->add_return_arg( thumbnails_created => $cropped );
     return $app->call_return;
 }
 
@@ -504,7 +507,9 @@ sub list_action_auto_crop {
     my ( $cropped, $had_errors );
     for my $asset_id ( @asset_ids ) {
         local $app->{_errstr} = undef;   # Localize the error
-        my $batch             = _auto_crop( $asset_id );
+        my $asset = $app->model('asset')->load({id => $asset_id})
+            or next;
+        my $batch = insert_auto_crop_job( $asset );
         if ( defined $batch and scalar @$batch ) {
             push( @$cropped, @$batch );
         }
