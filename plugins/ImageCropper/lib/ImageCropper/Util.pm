@@ -202,7 +202,7 @@ sub find_cropped_asset {
 
     if ( $cropped_asset ) {
         print STDERR "Memcache set: $cache_key = $cropped_asset\n"
-            if $MT::DebugMode & 2;
+            if $MT::DebugMode & 256;
         $cache->set( $cache_key => $cropped_asset );
     }
     else {
