@@ -116,7 +116,7 @@ list_actions:
         auto_crop:
             label: 'Automatically Generate Thumbnails'
             order: 200
-            code:  $ImageCropper::ImageCropper::Plugin::page_action_auto_crop
+            code:  $ImageCropper::ImageCropper::Plugin::list_action_auto_crop
     blog:
         import:
             label: 'Import thumbnail prototypes from theme'
