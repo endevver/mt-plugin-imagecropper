@@ -504,21 +504,21 @@ sub list_action_auto_crop {
     return $app->error( 'Invalid ID parameter found in list' )
         if grep { ! looks_like_number( $_ ) } @asset_ids;
 
-    my ( $cropped, $had_errors );
+    my ( @cropped, $had_errors );
     for my $asset_id ( @asset_ids ) {
         local $app->{_errstr} = undef;   # Localize the error
         my $asset = $app->model('asset')->load({id => $asset_id})
             or next;
         my $batch = insert_auto_crop_job( $asset );
-        if ( defined $batch and scalar @$batch ) {
-            push( @$cropped, @$batch );
+        if ( defined $batch ) {
+            push( @cropped, $batch );
         }
-        elsif ( ! defined $batch ) {
+        else {
             $had_errors = 1;
         }
     }
 
-    $app->add_return_arg( thumbnails_created => scalar @$cropped,
+    $app->add_return_arg( thumbnails_created => scalar @cropped,
                           had_errors         => $had_errors || 0 );
                           ### FIXME Handle had_errors in the templates
     $app->call_return;
@@ -1013,7 +1013,7 @@ sub insert_auto_crop_job {
     shift if $_[0] eq __PACKAGE__; # supports method invocation
     my ($asset) = @_;
 
-    # This must be an image for us to build thunbails, and the file needs to
+    # This must be an image for us to build thumbails, and the file needs to
     # exist, of course!
     return 1 unless $asset->class =~ m/(image|photo)/;
 
