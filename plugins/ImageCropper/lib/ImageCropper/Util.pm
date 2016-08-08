@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use base 'Exporter';
-our @EXPORT_OK = qw( crop_filename crop_image annotate file_size find_prototype_id find_cropped_asset );
+our @EXPORT_OK = qw( crop_filename crop_image annotate file_size find_cropped_asset );
 
 use Carp qw( croak );
 use Scalar::Util qw( blessed looks_like_number );

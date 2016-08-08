@@ -123,26 +123,6 @@ sub complete_upload_wrapper {
     return;
 }
 
-sub find_prototype_id {
-    my ( $ctx, $label ) = @_;
-    my $blog = $ctx->stash('blog');
-    my $ts   = $blog->template_set;
-    return undef unless $ts;
-    my $protos = MT->registry('template_sets')->{$ts}->{thumbnail_prototypes};
-    foreach ( keys %$protos ) {
-        my $l = $protos->{$_}->{label};
-        return $_ if ( $l && $l ne '' && &{$l} eq $label );
-    }
-}
-
-sub load_ts_prototype {
-    my $app = shift;
-    my ($key) = @_;
-    my ( $ts, $id ) = split( '___', $key );
-    return $app->registry('template_sets')->{$ts}->{thumbnail_prototypes}
-      ->{$id};
-}
-
 # Create prototypes from template set/theme definitions. This is run when
 # visiting the Manually Generate Thumbnails screen and when choosing to
 # auto-crop images.
@@ -237,7 +217,7 @@ sub _import_ts_prototypes {
     }
 }
 
-# The manuall generate thumbnails screen.
+# The manually generate thumbnails screen.
 sub gen_thumbnails_start {
     my $app = shift;
     my ($param) = @_ || {};
