@@ -195,13 +195,8 @@ sub find_cropped_asset {
     my $prototype_terms = { blog_id => $blog_id, label => $label };
 
     my $key = prototype_key( $blog_id, $label )
-        or return;   ### FIXME Should we return a default image?
-                     ### With no valid prototype key we can't find a cropped
-                     ### asset. I'm inclined to say this is a template problem
-                     ### where the template incorrectly identifies the
-                     ### prototype to use and so returning no default image is
-                     ### preferred, to help make it clear there's a template
-                     ### bug.
+        or croak 'Unable to find a thumbnail prototype with the label `'
+            . $label . '`.';
 
     my $terms = { prototype_key => $key, asset_id => $asset->id };
     if ( my $map = MT->model('thumbnail_prototype_map')->load($terms) ) {
