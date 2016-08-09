@@ -53,6 +53,8 @@ settings:
 config_settings:
     DefaultCroppedImageText:
         default: 'Created by "Image Cropper"'
+    FindAssetURLScript:
+        default: find_asset_url.cgi
 
 tags:
     block:
