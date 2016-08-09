@@ -220,7 +220,6 @@ sub find_cropped_asset {
             require ImageCropper::Plugin;
             ImageCropper::Plugin::insert_auto_crop_job( $asset );
         }
-        $cropped_asset = default_autocrop_image();
 
         # If $no_autocrop is true then we want to provide a valid asset *right
         # now*, not whenever the autocrop job is finished. The parent asset
@@ -229,11 +228,11 @@ sub find_cropped_asset {
             if $no_autocrop;
     }
 
+    # It's ok if $cropped_asset is undefined: that means there's no cropped
+    # image for the desired prototype. That's not necessarily a problem in that
+    # it can be handled through templating and the `Else` tag that Image
+    # Cropper provides for the `CroppedAsset` block tag.
     return $cropped_asset;
-}
-
-sub default_autocrop_image {
-    ### FIXME We need a default image to return
 }
 
 1;
