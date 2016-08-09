@@ -191,9 +191,6 @@ sub find_cropped_asset {
             or croak 'Could not load parent asset.';
     }
 
-    my $Prototype       = MT->model('thumbnail_prototype');
-    my $prototype_terms = { blog_id => $blog_id, label => $label };
-
     my $key = prototype_key( $blog_id, $label )
         or croak 'Unable to find a thumbnail prototype with the label `'
             . $label . '`.';
@@ -210,7 +207,16 @@ sub find_cropped_asset {
         $cache->set( $cache_key => $cropped_asset );
     }
     else {
-        if ( $asset ||= $Asset->load({ id => $asset_id }) ) {
+        # If the desired prototype supports autocrop, then insert a job to build
+        # the image.
+        my $Prototype       = MT->model('thumbnail_prototype');
+        my $prototype_terms = { blog_id => $blog_id, label => $label };
+        my $prototype        = $Prototype->load($prototype_terms);
+        if (
+            $prototype
+            && $prototype->autocrop
+            && $asset ||= $Asset->load({ id => $asset_id })
+        ) {
             require ImageCropper::Plugin;
             ImageCropper::Plugin::insert_auto_crop_job( $asset );
         }
