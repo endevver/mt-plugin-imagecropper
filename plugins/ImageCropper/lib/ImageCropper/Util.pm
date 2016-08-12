@@ -202,6 +202,7 @@ sub find_cropped_asset {
     }
 
     if ( $cropped_asset ) {
+        no warnings 'once';
         print STDERR "Memcache set: $cache_key = $cropped_asset\n"
             if $MT::DebugMode & 256;
         $cache->set( $cache_key => $cropped_asset );
@@ -215,7 +216,7 @@ sub find_cropped_asset {
         if (
             $prototype
             && $prototype->autocrop
-            && $asset ||= $Asset->load({ id => $asset_id })
+            and $asset ||= $Asset->load({ id => $asset_id })
         ) {
             require ImageCropper::Plugin;
             ImageCropper::Plugin::insert_auto_crop_job( $asset );
