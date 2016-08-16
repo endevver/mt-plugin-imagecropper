@@ -509,6 +509,8 @@ sub _auto_crop {
         }
     }
 
+    return 1 unless $asset->class =~ m/(image|photo)/;
+
     # The file needs to exist for us to do anything with it!
     if ( ! -f $asset->file_path ) {
         my $msg = 'Image Cropper is unable to load the file '
@@ -659,6 +661,8 @@ sub _calculate_auto_crop_box {
 sub _create_thumbnail {
     my ($arg_ref) = @_;
     my $asset     = $arg_ref->{asset};
+    return unless $asset && $asset->class =~ m/(image|photo)/;
+
     my $app       = MT->instance;
     my $plugin    = MT->component('imagecropper');
 
