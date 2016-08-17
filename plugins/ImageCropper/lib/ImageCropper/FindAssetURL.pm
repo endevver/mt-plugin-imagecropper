@@ -21,9 +21,18 @@ sub url {
 
     return unless $asset_id =~ /^\d+$/;
 
+    my $worker = $app->model('ts_funcmap')->load({
+            funcname => 'ImageCropper::Worker::AutoCrop',
+        }) or die "Image Cropper AutoCrop worker is missing?";
+
+    my $job = $app->model('ts_job')->load({
+        funcid  => $worker->funcid,
+        uniqkey => $asset_id,
+    });
+
     # A job with this unique key could not be found in the PQ, which means it's
     # already been processed. Republish so that the correct asset URLs are used.
-    if ( ! $app->model('ts_job')->exist({ uniqkey => $asset_id }) ) {
+    if ( ! $job ) {
         _republish_file();
     }
 
@@ -31,7 +40,7 @@ sub url {
     # haven't been built yet. Or, if the asset is not in the queue, this
     # template/page hasn't been republished yet (but was just added). Either
     # way, return the parent asset URL as a default image.
-    _return_asset( $asset_id );
+    _return_asset({ job => $job, asset_id => $asset_id, });
 }
 
 # Use the referring page's URL to determine exactly what needs to be
@@ -62,10 +71,17 @@ sub _republish_file {
 
     # Does a PQ worker with this fileinfo ID exist already? If so we want to
     # raise the priority; if not we need to insert a worker.
-    my $job;
-    if ( $job = $app->model('ts_job')->load({ uniqkey => $fi->id }) ) {
+    my $worker = $app->model('ts_funcmap')->load({
+            funcname => 'MT::Worker::Publish',
+        }) or die "Image Cropper can't find the MT::Worker::Publish worker?";
+
+    my $job = $app->model('ts_job')->load({
+        funcid  => $worker->funcid,
+        uniqkey => $fi->id,
+    });
+    if ( $job && $job->priority < 10 ) {
         # People are looking at this file, so raise the priority of the job to
-        # get it done sooner.
+        # (hopefully) get it done sooner.
         $job->priority( $job->priority + 1 );
         $job->save
             or die "Couldn't update the priority of this job! " . $job->errstr;
@@ -92,8 +108,18 @@ sub _republish_file {
 # returned as a temporary solution until the desired prototypes are built and
 # the page can be republished.
 sub _return_asset {
-    my ($asset_id, $jobid) = @_;
-    my $app = MT->instance;
+    my ($arg_ref) = @_;
+    my $job       = $arg_ref->{job};
+    my $asset_id  = $arg_ref->{asset_id};
+    my $app       = MT->instance;
+
+    # People are looking at this file, so raise the priority of the job to
+    # (hopefully) get it done sooner.
+    if ( $job && $job->priority < 10 ) {
+        $job->priority( $job->priority + 1 );
+        $job->save
+            or die "Couldn't update the priority of this job! " . $job->errstr;
+    }
 
     my $asset = $app->model('asset')->load({ id => $asset_id });
 
