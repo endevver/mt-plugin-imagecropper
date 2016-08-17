@@ -29,11 +29,28 @@ sub hdlr_cropped_asset {
     if ($cropped_asset) {
         local $ctx->{__stash}{'asset'} = $cropped_asset;
 
-        # Is there an AutoCrop job in the queue? If so, we need to supply a new
-        # URL to use the `find_asset_url.cgi` interface. (And if there is no
-        # AutoCrop job that means the asset already exists, or it's not
-        # automatically created and this URL rewrite is skipped.)
-        if ( $app->model('ts_job')->exist({ uniqkey => $a->id }) ) {
+        # Is the desired prototype AutoCrop-enabled, and is there an AutoCrop
+        # job in the queue? If so, we need to supply a new URL to use the
+        # `find_asset_url.cgi` interface. (And if there is no AutoCrop job that
+        # means the asset already exists, or it's not automatically created and
+        # this URL rewrite is skipped.)
+        my $prototype_terms = {
+            blog_id  => $blog_id,
+            label    => $label,
+            autocrop => 1,
+        };
+        my $worker = $app->model('ts_funcmap')->load({
+                funcname => 'ImageCropper::Worker::AutoCrop',
+            }) or die "Image Cropper AutoCrop worker is missing?";
+        my $job_terms = {
+            funcid  => $worker->funcid,
+            uniqkey => $a->id,
+        };
+
+        if (
+            $app->model('thumbnail_prototype')->exist( $prototype_terms )
+            && $app->model('ts_job')->exist( $job_terms )
+        ) {
             $ctx->{__stash}{asset}->url(
                 caturl(
                     $app->config->CGIPath,
