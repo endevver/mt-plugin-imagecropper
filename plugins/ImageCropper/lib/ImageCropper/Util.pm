@@ -164,12 +164,16 @@ sub find_cropped_asset {
     my ( $blog_id, $asset, $label, $no_autocrop ) = @_;
     ( $asset, my $asset_id ) = ( undef, $asset ) if looks_like_number( $asset );
 
-    require MT::Memcached;
-    my $cache         = MT::Memcached->instance;
-    my $cache_key     = join(':', 'cropped_asset', $blog_id,
+    my $serializer = MT::Serialize->new('Storable');
+
+    require MT::Cache::Negotiate;
+    my $cache     = MT::Cache::Negotiate->new( ttl => 604800, kind => 'IC' );
+    my $cache_key = join(':', 'cropped_asset', $blog_id,
                                   ( $asset_id || $asset->id ), $label );
     $cache_key =~ s! !_!g;
-    my $cropped_asset = $cache->get( $cache_key );
+    my $data          = $cache->get( $cache_key );
+    my $cropped_asset = $serializer->unserialize( $data ) if $data;
+
     return $cropped_asset if $cropped_asset;
 
     # Die if we're not provided the information we need to do our job
@@ -203,9 +207,10 @@ sub find_cropped_asset {
 
     if ( $cropped_asset ) {
         no warnings 'once';
-        print STDERR "Memcache set: $cache_key = $cropped_asset\n"
+        print STDERR "Cache set: $cache_key = $cropped_asset\n"
             if $MT::DebugMode & 256;
-        $cache->set( $cache_key => $cropped_asset );
+
+        $cache->set( $cache_key => $serializer->serialize( $cropped_asset ) );
     }
     else {
         # If the desired prototype supports autocrop, then insert a job to build
