@@ -9,6 +9,7 @@ use warnings;
 use Scalar::Util qw( looks_like_number );
 use Carp qw( croak longmess confess );
 use Sub::Install;
+use Image::Info qw( image_info );
 
 use MT::Util qw( relative_date     ts2epoch format_ts    caturl    encode_url
                  offset_time_list  epoch2ts offset_time  dirify );
@@ -343,7 +344,7 @@ sub delete_crop {
     return _send_json_response( $app, $result );
 }
 
-# User has defined a crop area dn clicked the "Crop" button. Do the actual
+# User has defined a crop area and clicked the "Crop" button. Do the actual
 # crop/resize to create a thumbnail.
 sub crop {
     my $app  = shift;
@@ -492,7 +493,8 @@ sub _auto_crop {
     while ( $asset->parent ) {
         # We loaded a child asset above; we want the parent.
         $asset = $app->model('asset')->load({
-            id => $asset->parent,
+            id    => $asset->parent,
+            class => ['image', 'photo'],
         });
         unless ( $asset ) {
             my $msg = 'Image Cropper is unable to load asset ID '
@@ -509,7 +511,22 @@ sub _auto_crop {
         }
     }
 
-    return 1 unless $asset->class =~ m/(image|photo)/;
+    # Do some digging to determine if this asset is really an image file. This
+    # catches mis-classified assets.
+    my $info = image_info( $asset->file_path );
+    if (my $error = $info->{error}) {
+        my $msg = 'Image Cropper found asset ID ' . $asset->id
+                . ' but it doesn&rsquo;t appear to actually be an image. Image '
+                . 'Cropper will not Auto-Crop this asset. Error: '
+                . $error;
+        $app->log({
+            category => 'load',
+            class    => 'Image Cropper',
+            level    => $app->model('log')->ERROR(),
+            message  => $msg,
+        });
+        return $app->error($msg);
+    }
 
     # The file needs to exist for us to do anything with it!
     if ( ! -f $asset->file_path ) {
@@ -786,6 +803,7 @@ sub _create_thumbnail {
             rotation => $text_rot,
         );
     }
+
     require MT::FileMgr;
     my $fmgr = $blog ? $blog->file_mgr : MT::FileMgr->new('Local');
     unless ($fmgr) {
