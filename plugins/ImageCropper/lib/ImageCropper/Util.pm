@@ -171,8 +171,9 @@ sub find_cropped_asset {
     my $cache_key = join(':', 'cropped_asset', $blog_id,
                                   ( $asset_id || $asset->id ), $label );
     $cache_key =~ s! !_!g;
+
     my $data          = $cache->get( $cache_key );
-    my $cropped_asset = $serializer->unserialize( $data ) if $data;
+    my $cropped_asset = $serializer->unserialize( $data ) || undef;
 
     return $cropped_asset if $cropped_asset;
 
