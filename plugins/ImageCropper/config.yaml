@@ -53,6 +53,8 @@ settings:
 config_settings:
     DefaultCroppedImageText:
         default: 'Created by "Image Cropper"'
+    FindAssetURLScript:
+        default: find_asset_url.cgi
 
 tags:
     block:
@@ -95,6 +97,7 @@ page_actions:
             order: 101
             code:  $ImageCropper::ImageCropper::Plugin::page_action_auto_crop
             condition: $ImageCropper::ImageCropper::Plugin::page_action_condition
+            continue_prompt: 'A worker job to generate thumnbails will be added to the Publish Queue; assets may not be immediately available. Do you want to continue?'
 
 listing_screens:
     thumbnail_prototype:
@@ -116,7 +119,8 @@ list_actions:
         auto_crop:
             label: 'Automatically Generate Thumbnails'
             order: 200
-            code:  $ImageCropper::ImageCropper::Plugin::page_action_auto_crop
+            code:  $ImageCropper::ImageCropper::Plugin::list_action_auto_crop
+            continue_prompt: 'A worker job to generate thumnbails will be added to the Publish Queue; assets may not be immediately available. Do you want to continue?'
     blog:
         import:
             label: 'Import thumbnail prototypes from theme'

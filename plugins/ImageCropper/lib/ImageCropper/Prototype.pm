@@ -40,9 +40,9 @@ sub class_label_plural {
 # The MT5 listing screen
 sub listing_screen {
     return {
-        primary => 'created_on',
+        primary          => 'created_on',
         default_sort_key => 'created_on',
-        screen_label => 'Thumbnail Prototypes Test!',
+        screen_label     => 'Thumbnail Prototypes Test!',
     };
 }
 
@@ -94,8 +94,8 @@ sub list_properties {
             }
         },
         created_by => {
-            base  => '__virtual.author_name',
-            order => 500,
+            base    => '__virtual.author_name',
+            order   => 500,
             display => 'default',
         },
         created_on => {

@@ -4,9 +4,11 @@ use strict;
 use warnings;
 
 use base 'Exporter';
-our @EXPORT_OK = qw( crop_filename crop_image annotate file_size find_prototype_id find_cropped_asset );
+our @EXPORT_OK = qw( crop_filename crop_image annotate file_size find_cropped_asset );
 
-use Scalar::Util qw( blessed );
+use Carp qw( croak );
+use Scalar::Util qw( blessed looks_like_number );
+use Try::Tiny;
 
 sub file_size {
     my $a     = shift;
@@ -129,64 +131,114 @@ sub find_prototype_id {
     my ( $ts, $label ) = @_;
     return undef unless $ts;
     my $protos = MT->registry('template_sets')->{$ts}->{thumbnail_prototypes};
-    foreach ( keys %$protos ) {
-        my $l = $protos->{$_}->{label};
-        return $_ if ( $l && $l ne '' && &{$l} eq $label );
+    foreach my $proto ( keys %$protos ) {
+        my $l = $protos->{$proto}->{label};
+        return $proto if $l
+                      && $l ne ''
+                      && &{$l} eq $label;
     }
 }
 
+sub prototype_key {
+    my ( $blog_id, $label ) = @_;
+    croak "No valid blog_id provided" unless looks_like_number($blog_id);
+    croak "No label specified"        unless $label;
+
+    return try {
+        my $Prototype       = MT->model('thumbnail_prototype');
+        my $prototype_terms = { blog_id => $blog_id, label => $label };
+        my $prototype       = $Prototype->load($prototype_terms);
+        $prototype->basename ? $prototype->basename
+                             : 'custom_' . $prototype->id;
+    }
+    catch {
+        my $blog = MT->model('blog')->load({ id => $blog_id });
+        my $ts   = $blog->template_set;
+        my $id   = find_prototype_id( $ts, $label );
+        $id ? $ts . "___" . $id : undef;
+    };
+}
+
 sub find_cropped_asset {
-    shift if $_[0] eq __PACKAGE__; # supports method invocation
-    my ( $blog_id, $asset, $label ) = @_;
-    $blog_id    = 0 unless ( $blog_id && $blog_id ne '' );
-    return undef unless $blog_id;
-    my $blog    = MT->model('blog')->load({ id => $blog_id });
-    my $ts      = $blog->template_set;
+    shift if $_[0] eq __PACKAGE__; # supports class or method invocation
+    my ( $blog_id, $asset, $label, $no_autocrop ) = @_;
+    ( $asset, my $asset_id ) = ( undef, $asset ) if looks_like_number( $asset );
 
-    my $prototype = MT->model('thumbnail_prototype')->load({
-        blog_id => $blog_id,
-        label   => $label,
-    });
+    my $serializer = MT::Serialize->new('Storable');
 
-    my $key;
-    if ($prototype) {
-        $key = $prototype->basename
-            ? $prototype->basename
-            : 'custom_' . $prototype->id;
-    }
-    elsif ( my $id = find_prototype_id( $ts, $label ) ) {
-        # MT->log({ message => "prototype not found, consulted registry: " . $id });
-        $key = $ts . "___" . $id;
-    }
+    require MT::Cache::Negotiate;
+    my $cache     = MT::Cache::Negotiate->new( ttl => 604800, kind => 'IC' );
+    my $cache_key = join(':', 'cropped_asset', $blog_id,
+                                  ( $asset_id || $asset->id ), $label );
+    $cache_key =~ s! !_!g;
+    my $data          = $cache->get( $cache_key );
+    my $cropped_asset = $serializer->unserialize( $data ) if $data;
 
-    # If there is no key then there's no way to find a crop.
-    return undef unless $key;
+    return $cropped_asset if $cropped_asset;
 
-    FIND_CROPPED_ASSET:
-    my $map = MT->model('thumbnail_prototype_map')->load({
-        prototype_key => $key,
-        asset_id      => blessed($asset) ? $asset->id : $asset,
-    });
+    # Die if we're not provided the information we need to do our job
+    my $Asset = MT->model('asset');
+    croak "No valid asset_id or asset provided"
+        unless $asset_id || try { $asset->isa($Asset) };
 
-    my $cropped_asset
-        = MT->model('asset')->load({ id => $map->cropped_asset_id })
-        if $map;
+    # Cropped assets are created with the parent asset, so make sure the parent
+    # is being used now, too, so that the proper cropped asset can be found.
+    $asset = $Asset->load({ id => $asset_id })
+        or croak "Asset ID $asset_id could not be loaded."
+            if defined $asset_id;
 
-    # Either the cropped asset couldn't be loaded for some reason or it doesn't
-    # exist yet. If the Prototype is supposed to be automatic, create it.
-    if ( ! $cropped_asset
-        && MT->model('thumbnail_prototype')->exist({
-            blog_id  => $blog_id,
-            label    => $label,
-            autocrop => 1,
-        })
-    ) {
-        require ImageCropper::Plugin;
-        ImageCropper::Plugin::_auto_crop( $asset->id );
-        goto FIND_CROPPED_ASSET;
+    # We loaded a child asset above; we want the parent. The while statement
+    # lets us get to the "real" parent if this asset is a child of a child of a
+    # child, etc.
+    while ( $asset->parent ) {
+        $asset = $Asset->load({ id => $asset->parent })
+            or croak 'Could not load parent asset.';
     }
 
-    return $cropped_asset ? $cropped_asset : undef;
+    my $key = prototype_key( $blog_id, $label )
+        or croak 'Unable to find a thumbnail prototype with the label `'
+            . $label . '`.';
+
+    my $terms = { prototype_key => $key, asset_id => $asset->id };
+    if ( my $map = MT->model('thumbnail_prototype_map')->load($terms) ) {
+        $cropped_asset = $Asset->load({ id => $map->cropped_asset_id });
+            # May be undef which is okay
+    }
+
+    if ( $cropped_asset ) {
+        no warnings 'once';
+        print STDERR "Cache set: $cache_key = $cropped_asset\n"
+            if $MT::DebugMode & 256;
+
+        $cache->set( $cache_key => $serializer->serialize( $cropped_asset ) );
+    }
+    else {
+        # If the desired prototype supports autocrop, then insert a job to build
+        # the image.
+        my $Prototype       = MT->model('thumbnail_prototype');
+        my $prototype_terms = { blog_id => $blog_id, label => $label };
+        my $prototype        = $Prototype->load($prototype_terms);
+        if (
+            $prototype
+            && $prototype->autocrop
+            and $asset ||= $Asset->load({ id => $asset_id })
+        ) {
+            require ImageCropper::Plugin;
+            ImageCropper::Plugin::insert_auto_crop_job( $asset );
+        }
+
+        # If $no_autocrop is true then we want to provide a valid asset *right
+        # now*, not whenever the autocrop job is finished. The parent asset
+        # will do.
+        $cropped_asset = $asset
+            if $no_autocrop;
+    }
+
+    # It's ok if $cropped_asset is undefined: that means there's no cropped
+    # image for the desired prototype. That's not necessarily a problem in that
+    # it can be handled through templating and the `Else` tag that Image
+    # Cropper provides for the `CroppedAsset` block tag.
+    return $cropped_asset;
 }
 
 1;

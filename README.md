@@ -33,6 +33,8 @@ Movable Type 4.x is supported with [version 1.1.3](https://github.com/endevver/m
 * Create alternate thumbnails using a simple drag-and-drop cropping interface
   -- without ever leaving Movable Type.
 
+* Automatically create thumbnails based on prototypes for allowable image sizes.
+
 * Annotate thumbnails with a custom message.
 
 * Place annotations using the orientation and location you specify on the
@@ -60,6 +62,36 @@ properties for each:
 * Max Width
 * Max Height
 * Label (used later for selecting and placing cropped images on your web site)
+* AutoCrop
+
+AutoCrop's yes/no property belies greater capability. A prototype with AutoCrop
+enabled will automatically crop and scale the image to the desired size. This
+happens under several conditions:
+
+* When the image is first uploaded. An AutoCrop job is added to the Publish
+  Queue where it will be processed as soon as possible. Hopefully, when you are
+  ready to insert an image into your Entry, for example, a new asset based on
+  the AutoCrop prototype is ready for you to use!
+
+* From the Manage Assets or Edit Asset screen you can use the Automatically
+  Generate Thumbnails option to create a job in the Publish Queue to build any
+  AutoCrop-enabled prototypes.
+
+* When publishing a template, if an asset with the desired prototype can not be
+  found *and* if the desired prototype is AutoCrop-enabled, a job will be added
+  to the Publish Queue.
+
+Additionally, when publishing, if no asset can be found for the desired
+AutoCrop-enabled prototype then a dynamic URL will be returned instead of the
+expected asset URL. When hitting this dynamic URL -- such as when visiting a
+page that has an image tag with the `src` property set to the dynamic URL --
+Image Cropper will insert a job into the Publish Queue if an AutoCrop-enabled
+prototype is found, and will also republish the desired page after the new
+cropped assets have been created.
+
+It's also worth pointing out that AutoCrop won't overwrite any existing
+thumbnails, which is particularly important if you've gone to the trouble of
+creating a manual crop already!
 
 ### Managing Thumbnails ###
 

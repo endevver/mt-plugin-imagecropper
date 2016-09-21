@@ -6,13 +6,14 @@ package ImageCropper::Plugin;
 use strict;
 use warnings;
 
+use Scalar::Util qw( looks_like_number );
 use Carp qw( croak longmess confess );
 use Sub::Install;
+use Image::Info qw( image_info );
 
 use MT::Util qw( relative_date     ts2epoch format_ts    caturl    encode_url
                  offset_time_list  epoch2ts offset_time  dirify );
 use ImageCropper::Util qw( crop_filename crop_image annotate file_size find_cropped_asset );
-use Sub::Install;
 
 use MT::Log::Log4perl qw( l4mtdump ); use Log::Log4perl qw( :resurrect );
 my $logger ||= MT::Log::Log4perl->new();
@@ -123,66 +124,6 @@ sub complete_upload_wrapper {
     return;
 }
 
-sub hdlr_default_text {
-    my ( $ctx, $args, $cond ) = @_;
-    my $cfg = $ctx->{config};
-    return $cfg->DefaultCroppedImageText;
-}
-
-sub find_prototype_id {
-    my ( $ctx, $label ) = @_;
-    my $blog = $ctx->stash('blog');
-    my $ts   = $blog->template_set;
-    return undef unless $ts;
-    my $protos = MT->registry('template_sets')->{$ts}->{thumbnail_prototypes};
-    foreach ( keys %$protos ) {
-        my $l = $protos->{$_}->{label};
-        return $_ if ( $l && $l ne '' && &{$l} eq $label );
-    }
-}
-
-sub hdlr_cropped_asset {
-    my ( $ctx, $args, $cond ) = @_;
-    my $l       = $args->{label};
-
-    my $a       = $ctx->stash('asset')
-        or return $ctx->_no_asset_error();
-
-    my $blog    =  $ctx->stash('blog')
-                || MT->model('blog')->load({ id => $a->blog_id });
-
-    my $blog_id = defined $args->{blog_id}  ? $args->{blog_id}
-                : defined $a->blog_id       ? $a->blog_id
-                : ref $blog                 ? $blog->id
-                : 0;
-
-    my $out;
-    my $cropped_asset = find_cropped_asset($blog_id, $a->id, $l);
-    if ($cropped_asset) {
-        local $ctx->{__stash}{'asset'} = $cropped_asset;
-        defined( $out = $ctx->slurp( $args, $cond ) ) or return;
-        return $out;
-    }
-    return _hdlr_pass_tokens_else(@_);
-}
-
-sub _hdlr_pass_tokens_else {
-    my ( $ctx, $args, $cond ) = @_;
-    my $b = $ctx->stash('builder');
-    my $out;
-    defined( $out = $b->build( $ctx, $ctx->stash('tokens_else'), $cond ) )
-      or return $ctx->error( $b->errstr );
-    return $out;
-}
-
-sub load_ts_prototype {
-    my $app = shift;
-    my ($key) = @_;
-    my ( $ts, $id ) = split( '___', $key );
-    return $app->registry('template_sets')->{$ts}->{thumbnail_prototypes}
-      ->{$id};
-}
-
 # Create prototypes from template set/theme definitions. This is run when
 # visiting the Manually Generate Thumbnails screen and when choosing to
 # auto-crop images.
@@ -277,7 +218,7 @@ sub _import_ts_prototypes {
     }
 }
 
-# The manuall generate thumbnails screen.
+# The manually generate thumbnails screen.
 sub gen_thumbnails_start {
     my $app = shift;
     my ($param) = @_ || {};
@@ -290,7 +231,7 @@ sub gen_thumbnails_start {
     my $obj = $app->model('asset')->load({ id => $id })
         or return $app->error('Could not load asset.');
 
-    if ( defined $obj->parent ) {
+    while ( $obj->parent ) {
         # We loaded a child asset above; we want the parent.
         $obj = $app->model('asset')->load({ id => $obj->parent })
             or return $app->error('Could not load parent asset.');
@@ -403,7 +344,7 @@ sub delete_crop {
     return _send_json_response( $app, $result );
 }
 
-# User has defined a crop area dn clicked the "Crop" button. Do the actual
+# User has defined a crop area and clicked the "Crop" button. Do the actual
 # crop/resize to create a thumbnail.
 sub crop {
     my $app  = shift;
@@ -463,18 +404,25 @@ sub _box_dim {
 # clicked the Automatically Generate Thumbnails page action.
 sub page_action_auto_crop {
     my ($app) = @_;
+    my $id    = $app->param('id');
+
     $app->validate_magic or return;
 
-    _auto_crop( $app->param('id') );
+    return $app->error('Invalid ID parameter')
+        unless looks_like_number( $id );
 
-    $app->add_return_arg( thumbnails_created => 1 );
-    $app->call_return;
+    my $asset = $app->model('asset')->load({id => $id})
+        or return;
+    my $cropped = insert_auto_crop_job( $asset );
+
+    $app->add_return_arg( thumbnails_created => $cropped );
+    return $app->call_return;
 }
 
 # Can the "Automatically Generate Thumbnails" and "Generate Thumbnails" page
 # actions be displayed for this asset? Check that it's an image asset first.
 sub page_action_condition {
-    my ($app) = MT->instance;
+    my ( $app )  = MT->instance;
     my $asset_id = $app->param('id');
 
     return 1 if $app->model('asset')->exist({
@@ -489,15 +437,31 @@ sub page_action_condition {
 # user selected images and chose the Automatically Generate Thumbnails list
 # action.
 sub list_action_auto_crop {
-    my ($app) = @_;
-    $app->validate_magic or return;
+    my ( $app )   = @_;
     my @asset_ids = $app->param('id');
 
-    for my $asset_id (@asset_ids) {
-        _auto_crop( $asset_id );
+    $app->validate_magic or return;
+
+    return $app->error( 'Invalid ID parameter found in list' )
+        if grep { ! looks_like_number( $_ ) } @asset_ids;
+
+    my ( @cropped, $had_errors );
+    for my $asset_id ( @asset_ids ) {
+        local $app->{_errstr} = undef;   # Localize the error
+        my $asset = $app->model('asset')->load({id => $asset_id})
+            or next;
+        my $batch = insert_auto_crop_job( $asset );
+        if ( defined $batch ) {
+            push( @cropped, $batch );
+        }
+        else {
+            $had_errors = 1;
+        }
     }
 
-    $app->add_return_arg( thumbnails_created => 1 );
+    $app->add_return_arg( thumbnails_created => scalar @cropped,
+                          had_errors         => $had_errors || 0 );
+                          ### FIXME Handle had_errors in the templates
     $app->call_return;
 }
 
@@ -505,7 +469,7 @@ sub list_action_auto_crop {
 # created based on all prototypes in the blog that are marked for autocrop.
 sub _auto_crop {
     my ($asset_id) = @_;
-    my $app      = MT->instance;
+    my $app        = MT->instance;
 
     # We want to work with the parent asset only. Is this the parent? If not,
     # find it.
@@ -514,37 +478,68 @@ sub _auto_crop {
         class => ['image', 'photo'],
     });
 
-    if ( !$asset ) {
+    if ( ! $asset ) {
+        my $msg = 'Image Cropper is unable to load the asset ID ' . $asset_id
+            . ' for processing with Auto-Crop-enabled Prototypes.';
         $app->log({
             category => 'load',
             class    => 'Image Cropper',
             level    => $app->model('log')->ERROR(),
-            message  => 'Image Cropper is unable to load the asset ID '
-                . $asset_id . '; child assets will not be created based on '
-                . 'Auto-Crop-enabled Prototypes.',
+            message  => $msg,
         });
-        return 1;
+        return $app->error($msg);
     }
 
-    if ( defined $asset->parent ) {
+    while ( $asset->parent ) {
         # We loaded a child asset above; we want the parent.
         $asset = $app->model('asset')->load({
-            id => $asset->parent,
-        })
-            or return $app->error('Could not load parent asset.');
+            id    => $asset->parent,
+            class => ['image', 'photo'],
+        });
+        unless ( $asset ) {
+            my $msg = 'Image Cropper is unable to load asset ID '
+                    . $asset->parent . ', the parent of asset ID '
+                    . $asset_id. '; child assets will not be created based on '
+                    . 'Auto-Crop-enabled Prototypes.';
+            $app->log({
+                category => 'load',
+                class    => 'Image Cropper',
+                level    => $app->model('log')->ERROR(),
+                message  => $msg,
+            });
+            return $app->error($msg);
+        }
+    }
+
+    # Do some digging to determine if this asset is really an image file. This
+    # catches mis-classified assets.
+    my $info = image_info( $asset->file_path );
+    if (my $error = $info->{error}) {
+        my $msg = 'Image Cropper found asset ID ' . $asset->id
+                . ' but it doesn&rsquo;t appear to actually be an image. Image '
+                . 'Cropper will not Auto-Crop this asset. Error: '
+                . $error;
+        $app->log({
+            category => 'load',
+            class    => 'Image Cropper',
+            level    => $app->model('log')->ERROR(),
+            message  => $msg,
+        });
+        return $app->error($msg);
     }
 
     # The file needs to exist for us to do anything with it!
-    if ( !-f $asset->file_path ) {
+    if ( ! -f $asset->file_path ) {
+        my $msg = 'Image Cropper is unable to load the file '
+                . $asset->file_path . ' for asset ID ' . $asset->id . '.';
         $app->log({
             blog_id  => $asset->blog_id,
             category => 'load',
             class    => 'Image Cropper',
             level    => $app->model('log')->ERROR(),
-            message  => 'Image Cropper is unable to load the file '
-                . $asset->file_path . ' for asset ID ' . $asset->id . '.'
+            message  => $msg,
         });
-        return 1;
+        return [];    # Don't return an app error for this.
     }
 
     # Load the necessary prototypes. Some prototypes may have the auto-crop
@@ -554,10 +549,11 @@ sub _auto_crop {
         autocrop => 1,
     });
 
-    foreach my $prototype (@prototypes) {
-        my $prototype_key = $prototype->basename ne ''
-            ? $prototype->basename
-            : 'custom_' . $prototype->id;
+    my @thumbs;
+    foreach my $prototype ( @prototypes ) {
+        my $prototype_key = ( $prototype->basename // '' ) ne ''
+                              ? $prototype->basename
+                              : 'custom_' . $prototype->id;
 
         # Does a crop with this prototype exist? If yes, give up. We don't want
         # to auto-crop and potentially destroy a manually cropped image.
@@ -567,13 +563,11 @@ sub _auto_crop {
         # exist to these old-style keys, look for any in addition to the new
         # style.
         my $old_style_key = $prototype_key;
-        $old_style_key =~ s/__/::/;
-
-        my $map = $app->model('thumbnail_prototype_map')->load({
+        $old_style_key    =~ s/__/::/;
+        my $map           = $app->model('thumbnail_prototype_map')->load({
             asset_id      => $asset->id,
-            prototype_key => [$prototype_key, $old_style_key],
+            prototype_key => [ $prototype_key, $old_style_key ],
         });
-
         next if $map && $app->model('asset')->exist( $map->cropped_asset_id );
 
         # Is this a cropped child asset? We don't want to create crops of child
@@ -588,15 +582,17 @@ sub _auto_crop {
         });
 
         # Finally, create the thumbnail.
-        my $result = _create_thumbnail({
+        push( @thumbs, _create_thumbnail({
             asset         => $asset,
             prototype_key => $prototype_key,
             w             => $crop_box->{w},
             h             => $crop_box->{h},
             x             => $crop_box->{x},
             y             => $crop_box->{y},
-        });
+        }));
     }
+
+    return \@thumbs;
 }
 
 sub _calculate_auto_crop_box {
@@ -682,6 +678,8 @@ sub _calculate_auto_crop_box {
 sub _create_thumbnail {
     my ($arg_ref) = @_;
     my $asset     = $arg_ref->{asset};
+    return unless $asset && $asset->class =~ m/(image|photo)/;
+
     my $app       = MT->instance;
     my $plugin    = MT->component('imagecropper');
 
@@ -805,6 +803,7 @@ sub _create_thumbnail {
             rotation => $text_rot,
         );
     }
+
     require MT::FileMgr;
     my $fmgr = $blog ? $blog->file_mgr : MT::FileMgr->new('Local');
     unless ($fmgr) {
@@ -855,7 +854,7 @@ sub _create_thumbnail {
         or $error =
             MT->translate( "Error creating cropped file: [_1]", $fmgr->errstr );
 
-    my $asset_cropped = new MT::Asset::Image;
+    my $asset_cropped = MT::Asset::Image->new();
     $asset_cropped->blog_id( $blog->id );
     $asset_cropped->url($cropped_url);
     $asset_cropped->file_path($cropped_path);
@@ -876,15 +875,20 @@ sub _create_thumbnail {
     $asset_cropped->mime_type( $asset->mime_type );
     $asset_cropped->save or die $asset_cropped->errstr;
 
+    my $msg = sprintf( 'Image Cropper created a new child asset (ID %d) based '
+                     . 'on the Thumbnail Prototype &ldquo;%s&rdquo; and the '
+                     . 'parent asset %s(ID %d).',
+        $asset_cropped->id,
+        $prototype->label,
+        ( $asset->label ? '&ldquo;'.$asset->label.'&rdquo; ' : '' ),
+        $asset->id
+    );
     $app->log({
         blog_id   => $blog->id,
         category  => 'new',
         class     => 'asset',
         level     => $app->model('log')->INFO(),
-        message   => 'Image Cropper created a new child asset (ID '
-            . $asset_cropped->id . ') based on the Thumbnail Prototype &ldquo;'
-            . $prototype->label . '&rdquo; and the parent asset &ldquo;'
-            . $asset->label . '&rdquo; (ID ' . $asset->id . ').',
+        message   => $msg,
     });
 
     my $map = MT->model('thumbnail_prototype_map')->new;
@@ -971,7 +975,7 @@ sub insert_auto_crop_job {
     shift if $_[0] eq __PACKAGE__; # supports method invocation
     my ($asset) = @_;
 
-    # This must be an image for us to build thunbails, and the file needs to
+    # This must be an image for us to build thumbails, and the file needs to
     # exist, of course!
     return 1 unless $asset->class =~ m/(image|photo)/;
 
@@ -1004,7 +1008,7 @@ sub insert_auto_crop_job {
         $job->funcname(  'ImageCropper::Worker::AutoCrop' );
         $job->coalesce(  $asset->id                       );
         $job->uniqkey(   $asset->id                       );
-        $job->priority(  1                                );
+        $job->priority(  2                                );
         $job->run_after( time()                           );
         MT::TheSchwartz->insert( $job );
     }
