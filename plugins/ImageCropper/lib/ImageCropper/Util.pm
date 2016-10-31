@@ -198,7 +198,7 @@ sub find_cropped_asset {
 
     my $key = prototype_key( $blog_id, $label )
         or croak 'Unable to find a thumbnail prototype with the label `'
-            . $label . '`.';
+            . $label . '` in blog ID '. $blog_id . '.';
 
     my $terms = { prototype_key => $key, asset_id => $asset->id };
     if ( my $map = MT->model('thumbnail_prototype_map')->load($terms) ) {
