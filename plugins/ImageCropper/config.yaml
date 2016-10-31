@@ -75,7 +75,9 @@ applications:
                 args:
                     _type: thumbnail_prototype
                 order: 500
-                view: blog
+                view:
+                    - blog
+                    - website
         methods:
             edit_prototype:    $ImageCropper::ImageCropper::Prototype::edit_prototype
             delete_prototype:  $ImageCropper::ImageCropper::Prototype::del_prototype
