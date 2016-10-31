@@ -11,7 +11,11 @@ sub hdlr_cropped_asset {
     my ( $ctx, $args, $cond ) = @_;
     my $app     = MT->instance;
     my $label   = $args->{label};
-    my $no_autocrop = $args->{no_autocrop} || 1;
+    my $use_dynamic = $args->{use_dynamic_url} || 0;
+    # If `use_dynamic_url` is specified then `no_autocrop` is, by necessity,
+    # specified. Otherwise false, so that the tag's "else" statement can work.
+    my $no_autocrop = $args->{no_autocrop} ? 1
+        : $use_dynamic ? 1 : 0;
 
     my $a       = $ctx->stash('asset')
         or return $ctx->_no_asset_error();
@@ -30,10 +34,10 @@ sub hdlr_cropped_asset {
         local $ctx->{__stash}{'asset'} = $cropped_asset;
 
         # Is the desired prototype AutoCrop-enabled, and is there an AutoCrop
-        # job in the queue? If so, we need to supply a new URL to use the
-        # `find_asset_url.cgi` interface. (And if there is no AutoCrop job that
-        # means the asset already exists, or it's not automatically created and
-        # this URL rewrite is skipped.)
+        # job in the queue? If so, we need to supply a new dynamic URL to use
+        # the `find_asset_url.cgi` interface. (And if there is no AutoCrop job
+        # that means the asset already exists, or it's not automatically
+        # created and this URL rewrite is skipped.)
         my $prototype_terms = {
             blog_id  => $blog_id,
             label    => $label,
@@ -48,7 +52,8 @@ sub hdlr_cropped_asset {
         };
 
         if (
-            $app->model('thumbnail_prototype')->exist( $prototype_terms )
+            $use_dynamic
+            && $app->model('thumbnail_prototype')->exist( $prototype_terms )
             && $app->model('ts_job')->exist( $job_terms )
         ) {
             $ctx->{__stash}{asset}->url(

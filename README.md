@@ -82,12 +82,13 @@ happens under several conditions:
   to the Publish Queue.
 
 Additionally, when publishing, if no asset can be found for the desired
-AutoCrop-enabled prototype then a dynamic URL will be returned instead of the
-expected asset URL. When hitting this dynamic URL -- such as when visiting a
-page that has an image tag with the `src` property set to the dynamic URL --
-Image Cropper will insert a job into the Publish Queue if an AutoCrop-enabled
-prototype is found, and will also republish the desired page after the new
-cropped assets have been created.
+AutoCrop-enabled prototype then a dynamic URL can be returned instead of the
+expected asset URL. (Enale the `use_dynamic_url` argument, described below.)
+When hitting this dynamic URL -- such as when visiting a page that has an image
+tag with the `src` property set to the dynamic URL -- Image Cropper will insert
+a job into the Publish Queue if an AutoCrop-enabled prototype is found, and
+will also republish the desired page after the new cropped assets have been
+created.
 
 It's also worth pointing out that AutoCrop won't overwrite any existing
 thumbnails, which is particularly important if you've gone to the trouble of
@@ -139,6 +140,18 @@ shows how you can use `<mt:else>` to do just that:
   context. See example above. Allowable arguments:
 
   * `label` - The label to filter by.
+  * `no_autocrop` - Use this argument when a prototype has autocrop enabled but
+    no thumbnail is available to ensure that *some* asset is returned.
+    Effectively, this is like using the "Else" in the CroppedAsset tag. Set to
+    `0` by default; enable with `1`.
+  * `use_dynamic_url` - Use this argument to generate a dynamic URL for assets
+    that use a prototype with autocrop enabled but no thumbnail is yet created.
+    As described above, the dynamic URL will return an asset, insert an
+    AutoCrop worker, and insert a republish worker to eliminate the use of the
+    dynamic URL. It is also worth noting that the dynamic URL can cause a
+    significant load on the server, particularly when many thumbnails from
+    AutoCrop-enabled prototypes are requested. This feature works best when you
+    know that only a few assets are going to be needed at a given time.
 
 ## Designer Guide ##
 
