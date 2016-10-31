@@ -15,8 +15,8 @@ use MT::Util qw( relative_date     ts2epoch format_ts    caturl    encode_url
                  offset_time_list  epoch2ts offset_time  dirify );
 use ImageCropper::Util qw( crop_filename crop_image annotate file_size find_cropped_asset );
 
-use MT::Log::Log4perl qw( l4mtdump ); use Log::Log4perl qw( :resurrect );
-my $logger ||= MT::Log::Log4perl->new();
+# use MT::Log::Log4perl qw( l4mtdump ); use Log::Log4perl qw( :resurrect );
+# my $logger ||= MT::Log::Log4perl->new();
 
 my %target;
 
